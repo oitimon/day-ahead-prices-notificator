@@ -1,1 +1,1 @@
-# day_ahead_prices_notificator
+# day-ahead-prices-notificator
