@@ -27,6 +27,7 @@ const chartPngFilename = "/tmp/epex_nl_da_prices_chart.png"
 const htmlChartWidth = 820
 const htmlChartHeight = 520
 const timeLocation = "Europe/Amsterdam"
+const fetchTimeout = 10 * time.Second
 
 // Config struct to hold environment variables
 type Config struct {
@@ -114,8 +115,17 @@ func main() {
 // fetchPrices function downloads and parses the price JSON
 func fetchPrices(url string) (data PriceData, err error) {
 	log.Printf("Fetching prices from %s\n", url)
-	resp, err := http.Get(url)
+
+	ctx, cancel := context.WithTimeout(context.Background(), fetchTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
+		err = fmt.Errorf("failed to create request: %w", err)
+		return
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		err = fmt.Errorf("failed to fetch data from API: %w", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -125,7 +135,11 @@ func fetchPrices(url string) (data PriceData, err error) {
 		return
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		err = fmt.Errorf("failed to read response body: %w", err)
+		return
+	}
 	if err = json.Unmarshal(body, &data); err != nil {
 		return
 	}
@@ -263,7 +277,7 @@ func sendTelegramMessage(cfg Config, message string) {
 	log.Printf("Sending message to Telegram: %s\n", message)
 	client, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
-		log.Fatal("Error Telegram Bot creating:", err)
+		log.Printf("Failed to initialize Telegram bot: %w\n", err)
 	}
 	msg := tgbotapi.NewMessage(cfg.TelegramChatID, message)
 	if _, err = client.Send(msg); err != nil {
