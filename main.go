@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -95,14 +96,15 @@ func main() {
 	}
 
 	// Step 2: Create chart
-	if err = createChart(&priceData, startDate); err != nil {
+	r, err := createChart(&priceData, startDate)
+	if err != nil {
 		sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
 		log.Fatal(err)
 		return
 	}
 
 	// Step 3: Send Telegram message
-	if err = sendPriceMessage(cfg, &priceData, startDate); err != nil {
+	if err = sendPriceMessage(cfg, &priceData, startDate, r); err != nil {
 		sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
 		log.Fatal(err)
 		return
@@ -137,7 +139,7 @@ func fetchPrices(url string) (data PriceData, err error) {
 }
 
 // createChart function generates a bar chart of prices
-func createChart(priceData *PriceData, day time.Time) (err error) {
+func createChart(priceData *PriceData, day time.Time) (r io.Reader, err error) {
 	// Saving the chart image as HTML file
 	log.Printf("Generating charts for: %s\n", day.Format("2006-01-02"))
 	prices := priceData.PricesFloat64()
@@ -200,12 +202,12 @@ func createChart(priceData *PriceData, day time.Time) (err error) {
 		return
 	}
 
-	err = os.WriteFile(chartPngFilename, buf, 0644)
+	r = bytes.NewReader(buf)
 	return
 }
 
 // sendPriceMessage sends a price chart to the Telegram bot with a message
-func sendPriceMessage(cfg Config, priceData *PriceData, day time.Time) (err error) {
+func sendPriceMessage(cfg Config, priceData *PriceData, day time.Time, r io.Reader) (err error) {
 	message := fmt.Sprintf("EPEX NL Day-Ahead %s", day.Format("2006-01-02"))
 	var priceMessage []string
 
@@ -244,16 +246,11 @@ func sendPriceMessage(cfg Config, priceData *PriceData, day time.Time) (err erro
 		return
 	}
 
-	file, err := os.Open(chartPngFilename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
 	_, err = client.Send(
 		tgbotapi.NewPhoto(
 			cfg.TelegramChatID, tgbotapi.FileReader{
 				Name:   chartPngFilename,
-				Reader: file,
+				Reader: r,
 			},
 		),
 	)
