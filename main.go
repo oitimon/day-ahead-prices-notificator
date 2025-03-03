@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/chromedp/chromedp"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
+	//"github.com/chromedp/chromedp"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -24,8 +27,9 @@ import (
 
 const chartHtmlFilename = "/tmp/epex_nl_da_prices_chart.html"
 const chartPngFilename = "/tmp/epex_nl_da_prices_chart.png"
-const htmlChartWidth = 820
-const htmlChartHeight = 520
+
+// const htmlChartWidth = 820
+// const htmlChartHeight = 520
 const timeLocation = "Europe/Amsterdam"
 const fetchTimeout = 10 * time.Second
 
@@ -37,17 +41,62 @@ type Config struct {
 	TelegramChatID int64           `envconfig:"TELEGRAM_CHAT_ID"`
 	HighPrice      decimal.Decimal `envconfig:"HIGH_PRICE"`
 	LowPrice       decimal.Decimal `envconfig:"LOW_PRICE"`
+
+	WebPort string `envconfig:"WEB_PORT"`
+
+	locationOnce sync.Once
+	location     *time.Location `envconfig:"-"`
+}
+
+func (cfg *Config) Location() *time.Location {
+	cfg.locationOnce.Do(
+		func() {
+			var err error
+			cfg.location, err = time.LoadLocation(timeLocation)
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
+	)
+	return cfg.location
+}
+
+func (cfg *Config) SelfCheck() {
+	if cfg.APIEndpoint == "" {
+		log.Fatal("API_ENDPOINT not set")
+	}
+	if cfg.InclBtw == "" {
+		log.Fatal("INCL_BTW not set")
+	}
+	if cfg.TelegramToken == "" {
+		log.Fatal("TELEGRAM_TOKEN not set")
+	}
+	if cfg.TelegramChatID == 0 {
+		log.Fatal("TELEGRAM_CHAT_ID not set")
+	}
+	if cfg.HighPrice.IsZero() {
+		log.Fatal("HIGH_PRICE not set")
+	}
+	if cfg.LowPrice.IsZero() {
+		log.Fatal("LOW_PRICE not set")
+	}
+	if cfg.WebPort == "" {
+		log.Fatal("WEB_PORT not set")
+	}
+	cfg.Location()
 }
 
 // PriceData struct to parse the response JSON
 type PriceData struct {
 	sync.Once
 
-	Prices []struct {
-		Price       float64 `json:"price"`
-		ReadingDate string  `json:"readingDate"`
-	} `json:"Prices"`
+	Prices        []PriceDataEntry `json:"Prices"`
 	pricesFloat64 []float64
+}
+
+type PriceDataEntry struct {
+	Price       float64 `json:"price"`
+	ReadingDate string  `json:"readingDate"`
 }
 
 func (data *PriceData) PricesFloat64() []float64 {
@@ -63,23 +112,40 @@ func (data *PriceData) PricesFloat64() []float64 {
 }
 
 func main() {
-	var cfg Config
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	cfg := &Config{}
+	if _, err := os.Stat(".env"); err == nil {
+		// We load and parse the .env file only if it exists,
+		// otherwise we rely on the environment variables.
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
 	}
-	if err = envconfig.Process("", &cfg); err != nil {
+	if err := envconfig.Process("", cfg); err != nil {
 		log.Fatalf("Error processing environment variables: %v", err)
 	}
-	if cfg.TelegramToken == "" || cfg.TelegramChatID == 0 {
-		log.Fatal("TELEGRAM_TOKEN or TELEGRAM_CHAT_ID not set")
-	}
+	cfg.SelfCheck()
 
 	// Get start and end dates for tomorrow in Amsterdam time
-	location, _ := time.LoadLocation(timeLocation)
-	now := time.Now()
-	startDate := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, location)
-	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, location)
+	//now := time.Now()
+	//startDate := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, cfg.Location())
+	//
+	//fetchAndSendPrices(cfg, startDate)
+
+	// Start the server.
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Get("/", homeHandler)
+	r.Get("/api/v1/healthcheck", healthCheckHandler)
+	log.Printf("Starting server on :%s\n", cfg.WebPort)
+	if err := http.ListenAndServe(":"+cfg.WebPort, r); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func fetchAndSendPrices(cfg *Config, startDate time.Time) {
+	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, cfg.Location())
 
 	// Create URL with dynamic dates and InclBtw parameter
 	url := fmt.Sprintf(
@@ -91,7 +157,7 @@ func main() {
 	// Step 1: Download JSON
 	priceData, err := fetchPrices(url)
 	if err != nil {
-		sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
+		//sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
 		log.Fatal(err)
 		return
 	}
@@ -99,14 +165,14 @@ func main() {
 	// Step 2: Create chart
 	r, err := createChart(&priceData, startDate)
 	if err != nil {
-		sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
+		//sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
 		log.Fatal(err)
 		return
 	}
 
 	// Step 3: Send Telegram message
 	if err = sendPriceMessage(cfg, &priceData, startDate, r); err != nil {
-		sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
+		//sendTelegramMessage(cfg, "Error generating "+startDate.Format("2006-01-02"))
 		log.Fatal(err)
 		return
 	}
@@ -202,26 +268,28 @@ func createChart(priceData *PriceData, day time.Time) (r io.Reader, err error) {
 	}
 
 	// Saving the chart image as PNG file
-	ctx, cancel := chromedp.NewContext(context.Background())
-	defer cancel()
+	//ctx, cancel := chromedp.NewContext(context.Background())
+	//defer cancel()
+	//var buf []byte
+	//if err = chromedp.Run(
+	//	ctx,
+	//	chromedp.Navigate("file://"+chartHtmlFilename),
+	//	chromedp.WaitVisible("body"),
+	//	chromedp.Sleep(1),
+	//	chromedp.EmulateViewport(htmlChartWidth, htmlChartHeight),
+	//	chromedp.CaptureScreenshot(&buf),
+	//); err != nil {
+	//	return
+	//}
 	var buf []byte
-	if err = chromedp.Run(
-		ctx,
-		chromedp.Navigate("file://"+chartHtmlFilename),
-		chromedp.WaitVisible("body"),
-		chromedp.Sleep(1),
-		chromedp.EmulateViewport(htmlChartWidth, htmlChartHeight),
-		chromedp.CaptureScreenshot(&buf),
-	); err != nil {
-		return
-	}
+	buf = []byte("PNG test")
 
 	r = bytes.NewReader(buf)
 	return
 }
 
 // sendPriceMessage sends a price chart to the Telegram bot with a message
-func sendPriceMessage(cfg Config, priceData *PriceData, day time.Time, r io.Reader) (err error) {
+func sendPriceMessage(cfg *Config, priceData *PriceData, day time.Time, r io.Reader) (err error) {
 	message := fmt.Sprintf("EPEX NL Day-Ahead %s", day.Format("2006-01-02"))
 	var priceMessage []string
 
@@ -273,14 +341,24 @@ func sendPriceMessage(cfg Config, priceData *PriceData, day time.Time, r io.Read
 }
 
 // sendTelegramMessage sends a general message to the Telegram bot
-func sendTelegramMessage(cfg Config, message string) {
+func sendTelegramMessage(cfg *Config, message string) {
 	log.Printf("Sending message to Telegram: %s\n", message)
 	client, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
-		log.Printf("Failed to initialize Telegram bot: %w\n", err)
+		log.Printf("Failed to initialize Telegram bot: %v\n", err)
+		return
 	}
 	msg := tgbotapi.NewMessage(cfg.TelegramChatID, message)
 	if _, err = client.Send(msg); err != nil {
 		log.Printf("Error sending message to Telegram: %v\n", err)
+		return
 	}
+}
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write([]byte("Welcome to DA price notificator!"))
+}
+
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write([]byte("healthy"))
 }
