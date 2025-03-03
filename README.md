@@ -3,6 +3,6 @@
 ## Building and running
 
 ```shell
-docker build -f Dockerfile -t day-ahead-prices-notificator .
+docker build -t day-ahead-prices-notificator .
 docker run -it --rm -p 8080:8080 --name day-ahead-prices-notificator day-ahead-prices-notificator
 ```
