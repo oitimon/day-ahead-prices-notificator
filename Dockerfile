@@ -18,10 +18,12 @@ WORKDIR /app
 # Install tzdata
 RUN apk add --no-cache tzdata
 
-COPY --from=builder  /app/da-price-notificator .
+# Create a non-root user
+RUN addgroup -S nonroot && \
+    adduser -S -G nonroot nonroot
+USER nonroot
 
-# Copy ENV file, NOT recommended, just for FAST running
-#COPY --from=builder  /app/.env .
+COPY --from=builder  /app/da-price-notificator .
 
 # Expose necessary ports
 EXPOSE 8080
