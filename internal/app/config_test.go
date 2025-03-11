@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
@@ -30,7 +31,19 @@ func TestConfigExample(t *testing.T) {
 	if err := cfg.SelfCheck(); err != nil {
 		log.Fatalf("Error checking configuration: %v", err)
 	}
+}
 
+func TestLocation(t *testing.T) {
+	cfg := generateTestConfig()
+
+	expected, _ := time.LoadLocation("Europe/Amsterdam")
+	assert.Equal(t, expected, cfg.Location())
+}
+
+func TestTomorrowHourMin(t *testing.T) {
+	cfg := generateTestConfig()
+
+	assert.Equal(t, 15, cfg.TomorrowHourMin())
 }
 
 func generateTestConfig() *ConfigApp {

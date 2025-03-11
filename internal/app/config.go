@@ -11,6 +11,7 @@ import (
 )
 
 const timeLocation = "Europe/Amsterdam"
+const tomorrowHourMin = 15
 const loaderDriverStub = "stub"
 const loaderDriverEnergyZero = "energyzero"
 const messengerDriverTelegram = "telegram"
@@ -66,6 +67,10 @@ func (cfg *ConfigApp) Location() *time.Location {
 		},
 	)
 	return cfg.location
+}
+
+func (cfg *ConfigApp) TomorrowHourMin() int {
+	return tomorrowHourMin
 }
 
 func (cfg *ConfigApp) SelfCheck() error {

@@ -22,32 +22,7 @@ func FetchPrices(cfg *ConfigLoader, startDate time.Time) ([]decimal.Decimal, err
 	case loaderDriverEnergyZero:
 		return fetchAsEnergyZero(cfg, startDate)
 	case loaderDriverStub:
-		return []decimal.Decimal{
-			decimal.NewFromFloat(0.15),
-			decimal.NewFromFloat(0.13),
-			decimal.NewFromFloat(0.12),
-			decimal.NewFromFloat(0.11),
-			decimal.NewFromFloat(0.11),
-			decimal.NewFromFloat(0.11),
-			decimal.NewFromFloat(0.12),
-			decimal.NewFromFloat(0.12),
-			decimal.NewFromFloat(0.12),
-			decimal.NewFromFloat(0.11),
-			decimal.NewFromFloat(0.08),
-			decimal.NewFromFloat(0.06),
-			decimal.NewFromFloat(0.04),
-			decimal.NewFromFloat(0),
-			decimal.NewFromFloat(0),
-			decimal.NewFromFloat(0.06),
-			decimal.NewFromFloat(0.1),
-			decimal.NewFromFloat(0.15),
-			decimal.NewFromFloat(0.17),
-			decimal.NewFromFloat(0.18),
-			decimal.NewFromFloat(0.16),
-			decimal.NewFromFloat(0.15),
-			decimal.NewFromFloat(0.15),
-			decimal.NewFromFloat(0.13),
-		}, nil
+		return generateStub()
 	default:
 		return nil, errors.New("unknown loader driver")
 	}
@@ -111,4 +86,33 @@ func fetchByUrl(url string, data *models.PriceData) (err error) {
 	}
 
 	return
+}
+
+func generateStub() ([]decimal.Decimal, error) {
+	return []decimal.Decimal{
+		decimal.NewFromFloat(0.15),
+		decimal.NewFromFloat(0.13),
+		decimal.NewFromFloat(0.12),
+		decimal.NewFromFloat(0.11),
+		decimal.NewFromFloat(0.11),
+		decimal.NewFromFloat(0.11),
+		decimal.NewFromFloat(0.12),
+		decimal.NewFromFloat(0.12),
+		decimal.NewFromFloat(0.12),
+		decimal.NewFromFloat(0.11),
+		decimal.NewFromFloat(0.08),
+		decimal.NewFromFloat(0.06),
+		decimal.NewFromFloat(0.04),
+		decimal.NewFromFloat(0),
+		decimal.NewFromFloat(0),
+		decimal.NewFromFloat(0.06),
+		decimal.NewFromFloat(0.1),
+		decimal.NewFromFloat(0.15),
+		decimal.NewFromFloat(0.17),
+		decimal.NewFromFloat(0.18),
+		decimal.NewFromFloat(0.16),
+		decimal.NewFromFloat(0.15),
+		decimal.NewFromFloat(0.15),
+		decimal.NewFromFloat(0.13),
+	}, nil
 }

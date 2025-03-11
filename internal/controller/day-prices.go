@@ -11,14 +11,36 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := ctx.Value("config").(*app.ConfigApp)
 	day := ctx.Value("day").(time.Time)
 
+	// Check if the day is in the future
+	tomorrow := time.Now().AddDate(0, 0, 1)
+	tomorrow = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, cfg.Location())
+	if day.After(tomorrow) {
+		http.Error(w, "Day is in the future after tomorrow", http.StatusNotFound)
+		return
+	} else if day.Equal(tomorrow) && time.Now().In(cfg.Location()).Hour() < cfg.TomorrowHourMin() {
+		http.Error(w, "Day is tomorrow but it's too early", http.StatusNotFound)
+		return
+	}
+
+	// Fetch prices
 	prices, err := app.FetchPrices(&cfg.Loader, day)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	for _, price := range prices {
-		println(price.String())
+
+	// Draw and send the chart
+	message, err := app.ChartText(&cfg.Analytics, prices)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	_, _ = w.Write([]byte(day.String()))
+	// Send message
+	//if err = app.SendMessage(&cfg.Messenger, message); err != nil {
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
+
+	_, _ = w.Write([]byte(message))
 }
