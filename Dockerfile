@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o da-price-notificator main.go
+RUN go build -o da-price-notificator cmd/server/main.go
 
 FROM alpine:latest
 
