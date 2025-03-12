@@ -48,16 +48,25 @@ jobs:
           docker tag day-ahead-prices-notificator:latest 202533543271.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
           docker push 202533543271.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
+      - name: Add GitHub Runner IP to Security Group
+        run: |
+          GITHUB_IP=$(curl -s https://api64.ipify.org)
+          aws ec2 authorize-security-group-ingress --group-id sg-0c30e26b4661ff7d4 --protocol tcp --port 22 --cidr $GITHUB_IP/32
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          debug: true
           script: |
             docker stop day-ahead-prices-notificator
             docker rm day-ahead-prices-notificator
             aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 202533543271.dkr.ecr.eu-north-1.amazonaws.com
             docker pull 202533543271.dkr.ecr.eu-north-1.amazonaws.com/202533543271:latest
             docker run -d -p 80:80 --name day-ahead-prices-notificator 202533543271.dkr.ecr.eu-north-1.amazonaws.com/day-ahead-prices-notificator:latest
+
+      - name: Remove GitHub Runner IP from Security Group
+        run: |
+          GITHUB_IP=$(curl -s https://api64.ipify.org)
+          aws ec2 revoke-security-group-ingress --group-id sg-0c30e26b4661ff7d4 --protocol tcp --port 22 --cidr $GITHUB_IP/32
