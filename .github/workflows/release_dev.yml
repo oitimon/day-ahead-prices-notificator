@@ -4,7 +4,7 @@ name: Development release
 on:
   push:
     branches:
-        - main
+      - main
 
 permissions:
   id-token: write
@@ -42,14 +42,21 @@ jobs:
         run: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin 202533543271.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-      - name: Build Docker image
+      - name: Build, tag and push Docker image
         run: |
           docker build -t day-ahead-prices-notificator .
-
-      - name: Tag Docker image
-        run: |
           docker tag day-ahead-prices-notificator:latest 202533543271.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
-
-      - name: Push Docker image to ECR
-        run: |
           docker push 202533543271.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker stop day-ahead-prices-notificator
+            docker rm day-ahead-prices-notificator
+            aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 202533543271.dkr.ecr.eu-north-1.amazonaws.com
+            docker pull 202533543271.dkr.ecr.eu-north-1.amazonaws.com/202533543271:latest
+            docker run -d -p 80:80 --name day-ahead-prices-notificator 202533543271.dkr.ecr.eu-north-1.amazonaws.com/day-ahead-prices-notificator:latest
