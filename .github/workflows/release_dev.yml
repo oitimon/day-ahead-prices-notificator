@@ -48,6 +48,11 @@ jobs:
           docker tag day-ahead-prices-notificator:latest 202533543271.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
           docker push 202533543271.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
+      - name: check vars
+        run: |
+          echo "${{ secrets.EC2_HOST }}"
+          echo "${{ secrets.EC2_SSH_KEY }}"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
         with:
