@@ -30,7 +30,7 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Draw and send the chart
-	message, err := app.ChartText(&cfg.Analytics, prices)
+	_, err = app.ChartText(&cfg.Analytics, prices, day)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -42,5 +42,9 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 	//	return
 	//}
 
-	_, _ = w.Write([]byte(message))
+	// Generate the chart as HTML
+	if err = app.ChartHtml(w, &cfg.Analytics, prices, day); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

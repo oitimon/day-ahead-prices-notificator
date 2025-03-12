@@ -104,7 +104,7 @@ func generateStub() ([]decimal.Decimal, error) {
 		decimal.NewFromFloat(0.06),
 		decimal.NewFromFloat(0.04),
 		decimal.NewFromFloat(0),
-		decimal.NewFromFloat(0),
+		decimal.NewFromFloat(-0.02),
 		decimal.NewFromFloat(0.06),
 		decimal.NewFromFloat(0.1),
 		decimal.NewFromFloat(0.15),

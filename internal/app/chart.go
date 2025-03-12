@@ -2,18 +2,102 @@ package app
 
 import (
 	"fmt"
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/guptarohit/asciigraph"
 	"github.com/shopspring/decimal"
+	"io"
+	"log"
 	"math"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const (
 	barChar = "█"
 )
 
-func ChartText(cfg *ConfigAnalytics, prices []decimal.Decimal) (message string, err error) {
+func ChartText(cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (message string, err error) {
 	return drawLinesBarChartHtml(cfg, prices, 30, true)
+}
+
+func ChartHtml(w io.Writer, cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (err error) {
+	log.Printf("Generating charts for: %s\n", day.Format("2006-01-02"))
+
+	bar := charts.NewBar()
+	xAxis := make([]string, len(prices))
+	for i := 0; i < len(prices); i++ {
+		xAxis[i] = strconv.Itoa(i)
+	}
+	yAxis := make([]opts.BarData, len(prices))
+	for i, price := range prices {
+		yAxis[i] = opts.BarData{
+			Value: price,
+			ItemStyle: &opts.ItemStyle{
+				Color: getColor(price, cfg),
+			},
+		}
+	}
+
+	bar.SetXAxis(xAxis).
+		AddSeries(
+			"", yAxis,
+			charts.WithAnimationOpts(opts.Animation{Animation: opts.Bool(true)}),
+		).
+		SetGlobalOptions(
+			charts.WithTitleOpts(opts.Title{Title: fmt.Sprintf("EPEX NL %s", day.Format("2006-01-02")), Left: "36%"}),
+			charts.WithXAxisOpts(
+				opts.XAxis{
+					AxisLabel: &opts.AxisLabel{
+						Rotate:    90,
+						Formatter: opts.FuncOpts(`function (value) { return value.padStart(2, '0')+':00'; }`),
+					},
+				},
+			),
+			charts.WithYAxisOpts(
+				opts.YAxis{
+					AxisLabel: &opts.AxisLabel{
+						Formatter: opts.FuncOpts(`function (value) { return value.toFixed(2); }`),
+					},
+				},
+			),
+			charts.WithTooltipOpts(
+				opts.Tooltip{
+					Formatter: opts.FuncOpts(`function (params) {
+						return '<div align="center">'
+							+ params.name.padStart(2, '0')+':00' + ' - ' + (Number(params.name)+1).toString().padStart(2, '0')+':00'
+							+ '<br \><b>' + params.value + ' €'
+							+ '</b></span>';
+					}`),
+				},
+			),
+		).
+		SetSeriesOptions(
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:     opts.Bool(true),
+					Position: "inside",
+				},
+			),
+		)
+
+	if err = bar.Render(w); err != nil {
+		err = fmt.Errorf("bar.Render(w): %w", err)
+		return
+	}
+
+	return
+}
+
+func getColor(value decimal.Decimal, cfg *ConfigAnalytics) string {
+	if value.LessThanOrEqual(cfg.LowPrice) {
+		return "green"
+	} else if value.GreaterThanOrEqual(cfg.HighPrice) {
+		return "red"
+	} else {
+		return ""
+	}
 }
 
 func drawLinesBarChartHtml(cfg *ConfigAnalytics, prices []decimal.Decimal, width int, markDown bool) (message string, err error) {
