@@ -13,3 +13,4 @@ docker run -it --rm -p 8080:8080 --name day-ahead-prices-notificator --env-file 
 go test -v ./... -coverprofile=coverage.out
 go tool cover -html=coverage.out
 ```
+
