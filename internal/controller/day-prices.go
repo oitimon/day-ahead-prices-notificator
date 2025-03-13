@@ -43,8 +43,10 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	// Generate the chart as HTML
-	if err = app.ChartHtml(w, &cfg.Analytics, prices, day); err != nil {
+	html, err := app.ChartHtml(&cfg.Analytics, prices, day)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Write(html)
 }

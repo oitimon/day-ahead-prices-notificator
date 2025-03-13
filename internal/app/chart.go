@@ -1,12 +1,12 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/guptarohit/asciigraph"
 	"github.com/shopspring/decimal"
-	"io"
 	"log"
 	"math"
 	"strconv"
@@ -15,14 +15,15 @@ import (
 )
 
 const (
-	barChar = "█"
+	barChar       = "█"
+	htmlPageTitle = "EPEX NL %s"
 )
 
 func ChartText(cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (message string, err error) {
 	return drawLinesBarChartHtml(cfg, prices, 30, true)
 }
 
-func ChartHtml(w io.Writer, cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (err error) {
+func ChartHtml(cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (html []byte, err error) {
 	log.Printf("Generating charts for: %s\n", day.Format("2006-01-02"))
 
 	bar := charts.NewBar()
@@ -82,10 +83,13 @@ func ChartHtml(w io.Writer, cfg *ConfigAnalytics, prices []decimal.Decimal, day 
 			),
 		)
 
-	if err = bar.Render(w); err != nil {
+	var buf bytes.Buffer
+	if err = bar.Render(&buf); err != nil {
 		err = fmt.Errorf("bar.Render(w): %w", err)
 		return
 	}
+	// Dirty hack to replace the title.
+	html = bytes.Replace(buf.Bytes(), []byte("Awesome go-echarts"), []byte(fmt.Sprintf(htmlPageTitle, cfg.Version)), -1)
 
 	return
 }
