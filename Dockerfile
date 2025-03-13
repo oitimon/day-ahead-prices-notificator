@@ -24,6 +24,7 @@ RUN addgroup -S nonroot && \
 USER nonroot
 
 COPY --from=builder  /app/da-price-notificator .
+COPY --from=builder  /app/VERSION .
 
 # Expose necessary ports
 EXPOSE 8080
