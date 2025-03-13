@@ -60,12 +60,11 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo su
-            docker stop day-ahead-prices-notificator
-            docker rm day-ahead-prices-notificator
+            sudo docker stop day-ahead-prices-notificator
+            sudo docker rm day-ahead-prices-notificator
             aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 202533543271.dkr.ecr.eu-north-1.amazonaws.com
-            docker pull 202533543271.dkr.ecr.eu-north-1.amazonaws.com/202533543271:latest
-            docker run -d -p 80:80 --name day-ahead-prices-notificator 202533543271.dkr.ecr.eu-north-1.amazonaws.com/day-ahead-prices-notificator:latest
+            sudo docker pull 202533543271.dkr.ecr.eu-north-1.amazonaws.com/202533543271:latest
+            sudo docker run -d -p 80:80 --name day-ahead-prices-notificator 202533543271.dkr.ecr.eu-north-1.amazonaws.com/day-ahead-prices-notificator:latest
 
       - name: Remove GitHub Runner IP from Security Group
         run: |
