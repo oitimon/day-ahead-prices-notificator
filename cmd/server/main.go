@@ -39,6 +39,13 @@ func main() {
 		log.Fatalf("Error checking configuration: %v", err)
 	}
 
+	// Load version from the file.
+	data, err := os.ReadFile("VERSION")
+	if err != nil {
+		log.Fatal("Error opening VERSION file")
+	}
+	cfg.Analytics.Version = string(data)
+
 	// Start the server.
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)

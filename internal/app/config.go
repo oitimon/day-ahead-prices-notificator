@@ -43,6 +43,7 @@ type ConfigMessenger struct {
 type ConfigAnalytics struct {
 	HighPrice decimal.Decimal
 	LowPrice  decimal.Decimal
+	Version   string
 }
 
 // Config struct to hold environment variables
