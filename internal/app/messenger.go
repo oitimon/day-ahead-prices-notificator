@@ -3,15 +3,16 @@ package app
 import (
 	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"log"
 	"strings"
 )
 
 var ErrUnknownMessengerDriver = errors.New("unknown messenger driver")
 
-func SendMessage(cfg *ConfigMessenger, message string) (err error) {
+func SendMessage(cfg *config.Messenger, message string) (err error) {
 	switch cfg.Driver {
-	case messengerDriverTelegram:
+	case config.MessengerDriverTelegram:
 		err = sendTelegram(&cfg.Telegram, message)
 	default:
 		err = ErrUnknownMessengerDriver
@@ -20,7 +21,7 @@ func SendMessage(cfg *ConfigMessenger, message string) (err error) {
 	return
 }
 
-func sendTelegram(cfg *ConfigTelegram, message string) (err error) {
+func sendTelegram(cfg *config.Telegram, message string) (err error) {
 	client, err := tgbotapi.NewBotAPI(cfg.Token)
 	if err != nil {
 		err = errors.New("error creating Telegram Bot: " + err.Error())

@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"errors"
@@ -12,52 +12,66 @@ import (
 
 const timeLocation = "Europe/Amsterdam"
 const tomorrowHourMin = 15
-const loaderDriverStub = "stub"
-const loaderDriverEnergyZero = "energyzero"
-const messengerDriverTelegram = "telegram"
+const LoaderDriverStub = "stub"
+const LoaderDriverEnergyZero = "energyzero"
+const RepositoryDriverGroupCache = "groupCache"
+const MessengerDriverTelegram = "telegram"
 
-type ConfigAPI struct {
+type Api struct {
 	Endpoint string
 }
 
-type ConfigLoader struct {
-	InclBtw bool
-	Driver  string
-	API     ConfigAPI
+type GroupCache struct {
+	Me     string
+	Listen string
+	Peers  []string
 }
 
-type ConfigServer struct {
+type Repository struct {
+	Driver     string
+	GroupCache GroupCache
+}
+
+type Loader struct {
+	InclBtw bool
+	Driver  string
+	API     Api
+}
+
+type Server struct {
 	Port string
 }
 
-type ConfigTelegram struct {
+type Telegram struct {
 	Token  string
 	ChatID int64
 }
 
-type ConfigMessenger struct {
+type Messenger struct {
 	Driver   string
-	Telegram ConfigTelegram
+	Telegram Telegram
 }
 
-type ConfigAnalytics struct {
+type Analytics struct {
 	HighPrice decimal.Decimal
 	LowPrice  decimal.Decimal
 	Version   string
 }
 
-// Config struct to hold environment variables
-type ConfigApp struct {
-	Analytics ConfigAnalytics
-	Loader    ConfigLoader
-	Server    ConfigServer
-	Messenger ConfigMessenger
+// App Config struct to hold environment variables
+type App struct {
+	Analytics       Analytics
+	DataRepository  Repository
+	ChartRepository Repository
+	Loader          Loader
+	Server          Server
+	Messenger       Messenger
 
 	locationOnce sync.Once
 	location     *time.Location
 }
 
-func (cfg *ConfigApp) Location() *time.Location {
+func (cfg *App) Location() *time.Location {
 	cfg.locationOnce.Do(
 		func() {
 			var err error
@@ -70,11 +84,11 @@ func (cfg *ConfigApp) Location() *time.Location {
 	return cfg.location
 }
 
-func (cfg *ConfigApp) TomorrowHourMin() int {
+func (cfg *App) TomorrowHourMin() int {
 	return tomorrowHourMin
 }
 
-func (cfg *ConfigApp) SelfCheck() error {
+func (cfg *App) SelfCheck() error {
 
 	if cfg.Analytics.HighPrice.IsZero() {
 		return errors.New("ANALYTICS_HIGHPRICE not set")
@@ -83,11 +97,11 @@ func (cfg *ConfigApp) SelfCheck() error {
 		return errors.New("ANALYTICS_LOWPRICE not set")
 	}
 
-	if cfg.Loader.Driver == loaderDriverEnergyZero {
+	if cfg.Loader.Driver == LoaderDriverEnergyZero {
 		if cfg.Loader.API.Endpoint == "" {
 			return errors.New("LOADER_API_ENDPOINT not set")
 		}
-	} else if cfg.Loader.Driver == loaderDriverStub {
+	} else if cfg.Loader.Driver == LoaderDriverStub {
 		// nothing to check
 	} else if cfg.Loader.Driver == "" {
 		return errors.New("LOADER_DRIVER not set")
@@ -99,7 +113,7 @@ func (cfg *ConfigApp) SelfCheck() error {
 		return errors.New("SERVER_PORT not set")
 	}
 
-	if cfg.Messenger.Driver == messengerDriverTelegram {
+	if cfg.Messenger.Driver == MessengerDriverTelegram {
 		if cfg.Messenger.Telegram.Token == "" {
 			return errors.New("MESSENGER_TELEGRAM_TOKEN not set")
 		}
@@ -114,4 +128,8 @@ func (cfg *ConfigApp) SelfCheck() error {
 
 	cfg.Location()
 	return nil
+}
+
+func (a *Analytics) MinDate() time.Time {
+	return time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 }
