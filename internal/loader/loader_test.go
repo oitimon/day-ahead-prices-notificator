@@ -1,6 +1,7 @@
-package app
+package loader
 
 import (
+	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"testing"
 	"time"
 
@@ -14,8 +15,8 @@ import (
 func TestFetchPrices(t *testing.T) {
 	server := generateFakeServer()
 	defer server.Close()
-	cfg := generateTestConfig()
-	cfg.Loader.Driver = loaderDriverEnergyZero
+	cfg := config.GenerateTestConfig()
+	cfg.Loader.Driver = "energyzero"
 	cfg.Loader.API.Endpoint = server.URL
 
 	data, err := FetchPrices(&cfg.Loader, time.Now())
@@ -38,11 +39,11 @@ func TestFetchPrices_Error(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func generateFakeConfig(serverUrl string) *ConfigLoader {
-	return &ConfigLoader{
+func generateFakeConfig(serverUrl string) *config.Loader {
+	return &config.Loader{
 		InclBtw: true,
 		Driver:  "test",
-		API: ConfigAPI{
+		API: config.Api{
 			Endpoint: serverUrl,
 		},
 	}

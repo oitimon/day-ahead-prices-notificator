@@ -2,12 +2,12 @@ package middleware
 
 import (
 	"context"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/app"
+	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"net/http"
 )
 
-// Middleware to add config to context
-func ConfigMiddleware(cfg *app.ConfigApp) func(http.Handler) http.Handler {
+// ConfigMiddleware Middleware to add config to context
+func ConfigMiddleware(cfg *config.App) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), "config", cfg)

@@ -1,4 +1,4 @@
-package app
+package chart
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/guptarohit/asciigraph"
+	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"github.com/shopspring/decimal"
 	"log"
 	"math"
@@ -19,12 +20,18 @@ const (
 	htmlPageTitle = "EPEX NL %s"
 )
 
-func ChartText(cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (message string, err error) {
-	return drawLinesBarChartHtml(cfg, prices, 30, true)
+type CommonChart struct {
+	cfg *config.Analytics
 }
 
-func ChartHtml(cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (html []byte, err error) {
-	log.Printf("Generating charts for: %s\n", day.Format("2006-01-02"))
+func NewChart(cfg *config.Analytics) Chart {
+	return &CommonChart{
+		cfg: cfg,
+	}
+}
+
+func (c *CommonChart) HtmlChart(prices []decimal.Decimal, day time.Time) (html []byte, err error) {
+	log.Printf("Generating HTML chart for: %s\n", day.Format("2006-01-02"))
 
 	bar := charts.NewBar()
 	xAxis := make([]string, len(prices))
@@ -36,7 +43,7 @@ func ChartHtml(cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (h
 		yAxis[i] = opts.BarData{
 			Value: price,
 			ItemStyle: &opts.ItemStyle{
-				Color: getColor(price, cfg),
+				Color: c.getColor(price, c.cfg),
 			},
 		}
 	}
@@ -89,12 +96,17 @@ func ChartHtml(cfg *ConfigAnalytics, prices []decimal.Decimal, day time.Time) (h
 		return
 	}
 	// Dirty hack to replace the title.
-	html = bytes.Replace(buf.Bytes(), []byte("Awesome go-echarts"), []byte(fmt.Sprintf(htmlPageTitle, cfg.Version)), -1)
+	html = bytes.Replace(buf.Bytes(), []byte("Awesome go-echarts"), []byte(fmt.Sprintf(htmlPageTitle, c.cfg.Version)), -1)
 
 	return
 }
 
-func getColor(value decimal.Decimal, cfg *ConfigAnalytics) string {
+func (c *CommonChart) TextChart(prices []decimal.Decimal, day time.Time) (string, error) {
+	log.Printf("Generating Text message for: %s\n", day.Format("2006-01-02"))
+	return c.drawLinesBarChartHtml(c.cfg, prices, 30, true)
+}
+
+func (c *CommonChart) getColor(value decimal.Decimal, cfg *config.Analytics) string {
 	if value.LessThanOrEqual(cfg.LowPrice) {
 		return "green"
 	} else if value.GreaterThanOrEqual(cfg.HighPrice) {
@@ -104,7 +116,7 @@ func getColor(value decimal.Decimal, cfg *ConfigAnalytics) string {
 	}
 }
 
-func drawLinesBarChartHtml(cfg *ConfigAnalytics, prices []decimal.Decimal, width int, markDown bool) (message string, err error) {
+func (c *CommonChart) drawLinesBarChartHtml(cfg *config.Analytics, prices []decimal.Decimal, width int, markDown bool) (message string, err error) {
 	maxVal, minVal := prices[0], prices[0]
 	for _, price := range prices {
 		if maxVal.LessThan(price) {
@@ -143,7 +155,7 @@ func drawLinesBarChartHtml(cfg *ConfigAnalytics, prices []decimal.Decimal, width
 	return
 }
 
-func drawASCIIBarChart(prices []decimal.Decimal, width, height int) (message string, err error) {
+func (c *CommonChart) drawASCIIBarChart(prices []decimal.Decimal, width, height int) (message string, err error) {
 	fPrices := make([]float64, len(prices))
 	for i, price := range prices {
 		fPrices[i], _ = price.Float64()

@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"github.com/joho/godotenv"
@@ -7,12 +7,10 @@ import (
 	"log"
 	"testing"
 	"time"
-
-	"github.com/shopspring/decimal"
 )
 
 func TestConfigSelfCheck(t *testing.T) {
-	cfg := generateTestConfig()
+	cfg := GenerateTestConfig()
 
 	// Perform self-check
 	err := cfg.SelfCheck() // This should not panic or return an error
@@ -20,7 +18,7 @@ func TestConfigSelfCheck(t *testing.T) {
 }
 
 func TestConfigExample(t *testing.T) {
-	cfg := &ConfigApp{}
+	cfg := &App{}
 	err := godotenv.Load("../../.env.example")
 	if err != nil {
 		log.Fatalf("Error loading .env.example file: %v", err)
@@ -34,40 +32,14 @@ func TestConfigExample(t *testing.T) {
 }
 
 func TestLocation(t *testing.T) {
-	cfg := generateTestConfig()
+	cfg := GenerateTestConfig()
 
 	expected, _ := time.LoadLocation("Europe/Amsterdam")
 	assert.Equal(t, expected, cfg.Location())
 }
 
 func TestTomorrowHourMin(t *testing.T) {
-	cfg := generateTestConfig()
+	cfg := GenerateTestConfig()
 
 	assert.Equal(t, 15, cfg.TomorrowHourMin())
-}
-
-func generateTestConfig() *ConfigApp {
-	return &ConfigApp{
-		Analytics: ConfigAnalytics{
-			HighPrice: decimal.NewFromFloat(0.2),
-			LowPrice:  decimal.NewFromFloat(0.1),
-		},
-		Loader: ConfigLoader{
-			InclBtw: true,
-			Driver:  "energyzero",
-			API: ConfigAPI{
-				Endpoint: "http://localhost:8080",
-			},
-		},
-		Server: ConfigServer{
-			Port: "8080",
-		},
-		Messenger: ConfigMessenger{
-			Driver: "telegram",
-			Telegram: ConfigTelegram{
-				Token:  "test",
-				ChatID: 123,
-			},
-		},
-	}
 }

@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/app"
+	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"net/http"
 	"strconv"
 	"time"
@@ -30,6 +30,6 @@ func DateMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "day", time.Date(year, time.Month(month), day, 0, 0, 0, 0, r.Context().Value("config").(*app.ConfigApp).Location()))))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "day", time.Date(year, time.Month(month), day, 0, 0, 0, 0, r.Context().Value("config").(*config.App).Location()))))
 	})
 }

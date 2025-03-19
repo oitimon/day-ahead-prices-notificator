@@ -1,10 +1,11 @@
-package app
+package loader
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/models"
 	"github.com/shopspring/decimal"
 	"io"
@@ -16,19 +17,37 @@ import (
 
 const fetchHttpTimeout = 10 * time.Second
 
+type Loader interface {
+	Fetch(startDate time.Time) ([]decimal.Decimal, error)
+}
+
+type CommonLoader struct {
+	cfg *config.Loader
+}
+
+func NewLoader(cfg *config.Loader) Loader {
+	return &CommonLoader{
+		cfg: cfg,
+	}
+}
+
+func (l *CommonLoader) Fetch(startDate time.Time) ([]decimal.Decimal, error) {
+	return FetchPrices(l.cfg, startDate)
+}
+
 // fetchPrices function downloads and parses the prices from the driver
-func FetchPrices(cfg *ConfigLoader, startDate time.Time) ([]decimal.Decimal, error) {
+func FetchPrices(cfg *config.Loader, startDate time.Time) ([]decimal.Decimal, error) {
 	switch cfg.Driver {
-	case loaderDriverEnergyZero:
+	case config.LoaderDriverEnergyZero:
 		return fetchAsEnergyZero(cfg, startDate)
-	case loaderDriverStub:
+	case config.LoaderDriverStub:
 		return generateStub()
 	default:
 		return nil, errors.New("unknown loader driver")
 	}
 }
 
-func fetchAsEnergyZero(cfg *ConfigLoader, startDate time.Time) (res []decimal.Decimal, err error) {
+func fetchAsEnergyZero(cfg *config.Loader, startDate time.Time) (res []decimal.Decimal, err error) {
 	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, startDate.Location())
 	url := fmt.Sprintf(
 		"%s/energyprices?fromDate=%s&tillDate=%s&interval=4&usageType=1&inclBtw=%s", cfg.API.Endpoint,
