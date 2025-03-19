@@ -58,11 +58,12 @@ func (da *Common) ValidateDay(day time.Time) error {
 		return errors.New("day is too old")
 	}
 
-	tomorrow := time.Now().AddDate(0, 0, 1)
+	now := time.Now().In(da.cfg.Location())
+	tomorrow := now.AddDate(0, 0, 1)
 	tomorrow = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, da.cfg.Location())
 	if day.After(tomorrow) {
 		return errors.New("day is in the future after tomorrow")
-	} else if day.Equal(tomorrow) && time.Now().In(da.cfg.Location()).Hour() < da.cfg.TomorrowHourMin() {
+	} else if day.Equal(tomorrow) && now.Hour() < da.cfg.TomorrowHourMin() {
 		return errors.New("day is tomorrow but it's too early")
 	}
 	return nil
