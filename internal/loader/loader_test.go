@@ -16,7 +16,7 @@ func TestFetchPrices(t *testing.T) {
 	server := generateFakeServer()
 	defer server.Close()
 	cfg := config.GenerateTestConfig()
-	cfg.Loader.Driver = "energyzero"
+	cfg.Loader.Driver = config.LoaderDriverEnergyZero
 	cfg.Loader.API.Endpoint = server.URL
 
 	data, err := FetchPrices(&cfg.Loader, time.Now())

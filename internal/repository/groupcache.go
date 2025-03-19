@@ -111,11 +111,11 @@ func (gc *groupCacheData) Get(startDate time.Time) (prices []decimal.Decimal, er
 			err = fmt.Errorf("unexpected JSON type '%s', expected string", price.Type())
 			return
 		}
-		if priceFLoat, err := strconv.ParseFloat(string(price.GetStringBytes()), 64); err != nil {
+		if priceFloat, err := strconv.ParseFloat(string(price.GetStringBytes()), 64); err != nil {
 			err = fmt.Errorf("error parsing price '%s': %v", price.String(), err)
 			return prices, err
 		} else {
-			prices = append(prices, decimal.NewFromFloat(priceFLoat))
+			prices = append(prices, decimal.NewFromFloat(priceFloat))
 		}
 	}
 	return
