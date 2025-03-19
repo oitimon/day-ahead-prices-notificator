@@ -4,7 +4,7 @@
 
 ```shell
 docker build -t day-ahead-prices-notificator .
-docker run -it --rm -p 8080:8080 --name day-ahead-prices-notificator --env-file .env day-ahead-prices-notificator
+docker run -it --rm -p 8080:8080 -p 9090:9090 --name day-ahead-prices-notificator --env-file .env day-ahead-prices-notificator
 ```
 
 ## Tests
