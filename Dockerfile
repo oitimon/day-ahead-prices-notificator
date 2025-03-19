@@ -27,6 +27,6 @@ COPY --from=builder  /app/da-price-notificator .
 COPY --from=builder  /app/VERSION .
 
 # Expose necessary ports
-EXPOSE 8080
+EXPOSE 8080, 9090
 
 CMD ["./da-price-notificator"]
