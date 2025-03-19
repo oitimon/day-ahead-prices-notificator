@@ -123,5 +123,5 @@ func (gc *groupCacheData) Get(startDate time.Time) (prices []decimal.Decimal, er
 
 func (gc *groupCacheBytes) Get(startDate time.Time) ([]byte, error) {
 	// Implement the logic to get data from groupcache
-	return nil, nil
+	return nil, errors.New("not implemented")
 }
