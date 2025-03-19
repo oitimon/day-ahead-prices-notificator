@@ -53,10 +53,6 @@ jobs:
           GITHUB_IP=$(curl -s https://api64.ipify.org)
           aws ec2 authorize-security-group-ingress --group-id sg-0c30e26b4661ff7d4 --protocol tcp --port 22 --cidr $GITHUB_IP/32
 
-      - name: Authenticate to AWS ECR
-        run: |
-          aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 202533543271.dkr.ecr.eu-north-1.amazonaws.com
-
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
         with:
