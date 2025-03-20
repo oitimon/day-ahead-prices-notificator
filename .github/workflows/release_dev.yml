@@ -1,32 +1,21 @@
----
 name: Development release
 
 on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: ["Tests", "Codacy Analysis"]
+    types:
+      - completed
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23'
-
-      - name: Test
-        run: go test -v ./...
-
   build-and-push:
     runs-on: ubuntu-latest
-    needs: tests
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -54,7 +43,8 @@ jobs:
           aws ec2 authorize-security-group-ingress --group-id sg-0c30e26b4661ff7d4 --protocol tcp --port 22 --cidr $GITHUB_IP/32
 
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.2.2
+        #uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user

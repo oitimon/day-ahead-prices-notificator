@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/oitimon/day-ahead-prices-notificator/internal/dayahead"
+	"html/template"
 	"log"
 	"net/http"
 	"time"
@@ -26,5 +27,18 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(html)
+	// Use html/template to render the HTML safely
+	tmpl, err := template.New("chart").Parse(string(html))
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "template parsing error", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "template execution error", http.StatusInternalServerError)
+		return
+	}
 }
