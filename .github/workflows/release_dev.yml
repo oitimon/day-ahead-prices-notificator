@@ -54,7 +54,8 @@ jobs:
           aws ec2 authorize-security-group-ingress --group-id sg-0c30e26b4661ff7d4 --protocol tcp --port 22 --cidr $GITHUB_IP/32
 
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.2.2
+        #uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
