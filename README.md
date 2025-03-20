@@ -1,4 +1,5 @@
 # `day-ahead-prices-notificator`
+
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/6883bd62e8e64ec09e61e819dc4181fb)](https://app.codacy.com/gh/oitimon/day-ahead-prices-notificator/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 ## Building and running
