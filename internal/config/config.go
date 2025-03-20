@@ -89,47 +89,71 @@ func (cfg *App) TomorrowHourMin() int {
 }
 
 func (cfg *App) SelfCheck() error {
-
-	if cfg.Analytics.HighPrice.IsZero() {
-		return errors.New("ANALYTICS_HIGHPRICE not set")
+	if err := cfg.Analytics.selfCheck(); err != nil {
+		return err
 	}
-	if cfg.Analytics.LowPrice.IsZero() {
-		return errors.New("ANALYTICS_LOWPRICE not set")
+	if err := cfg.Loader.selfCheck(); err != nil {
+		return err
 	}
-
-	if cfg.Loader.Driver == LoaderDriverEnergyZero {
-		if cfg.Loader.API.Endpoint == "" {
-			return errors.New("LOADER_API_ENDPOINT not set")
-		}
-	} else if cfg.Loader.Driver == LoaderDriverStub {
-		// nothing to check
-	} else if cfg.Loader.Driver == "" {
-		return errors.New("LOADER_DRIVER not set")
-	} else {
-		return fmt.Errorf("unknown LOADER_DRIVER: %s", cfg.Loader.Driver)
+	if err := cfg.Server.selfCheck(); err != nil {
+		return err
 	}
-
-	if cfg.Server.Port == "" {
-		return errors.New("SERVER_PORT not set")
-	}
-
-	if cfg.Messenger.Driver == MessengerDriverTelegram {
-		if cfg.Messenger.Telegram.Token == "" {
-			return errors.New("MESSENGER_TELEGRAM_TOKEN not set")
-		}
-		if cfg.Messenger.Telegram.ChatID == 0 {
-			return errors.New("MESSENGER_TELEGRAM_CHATID not set")
-		}
-	} else if cfg.Messenger.Driver == "" {
-		return errors.New("MESSENGER_DRIVER not set")
-	} else {
-		return fmt.Errorf("unknown MESSENGER_DRIVER: %s", cfg.Messenger.Driver)
+	if err := cfg.Messenger.selfCheck(); err != nil {
+		return err
 	}
 
 	cfg.Location()
 	return nil
 }
 
+func (a *Analytics) selfCheck() error {
+	if a.HighPrice.IsZero() {
+		return errors.New("ANALYTICS_HIGHPRICE not set")
+	}
+	if a.LowPrice.IsZero() {
+		return errors.New("ANALYTICS_LOWPRICE not set")
+	}
+	return nil
+}
+
 func (a *Analytics) MinDate() time.Time {
 	return time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+}
+
+func (l *Loader) selfCheck() error {
+	if l.Driver == LoaderDriverEnergyZero {
+		if l.API.Endpoint == "" {
+			return errors.New("LOADER_API_ENDPOINT not set")
+		}
+	} else if l.Driver == LoaderDriverStub {
+		// nothing to check
+	} else if l.Driver == "" {
+		return errors.New("LOADER_DRIVER not set")
+	} else {
+		return fmt.Errorf("unknown LOADER_DRIVER: %s", l.Driver)
+	}
+	return nil
+}
+
+func (s *Server) selfCheck() error {
+	if s.Port == "" {
+		return errors.New("SERVER_PORT not set")
+	}
+	return nil
+}
+
+func (m *Messenger) selfCheck() error {
+	if m.Driver == MessengerDriverTelegram {
+		if m.Telegram.Token == "" {
+			return errors.New("MESSENGER_TELEGRAM_TOKEN not set")
+		}
+		if m.Telegram.ChatID == 0 {
+			return errors.New("MESSENGER_TELEGRAM_CHATID not set")
+		}
+	} else if m.Driver == "" {
+		return errors.New("MESSENGER_DRIVER not set")
+	} else {
+		return fmt.Errorf("unknown MESSENGER_DRIVER: %s", m.Driver)
+	}
+	return nil
 }
