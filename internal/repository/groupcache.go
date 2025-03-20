@@ -74,7 +74,18 @@ func NewGroupCache(cfg *config.GroupCache, ldr loader.Loader) *GroupCache {
 
 		go func() {
 			log.Println("Starting groupcache server on", cfg.Me)
-			log.Fatal(http.ListenAndServe(cfg.Listen, peers))
+			// Some default settings for the server.
+			srv := &http.Server{
+				Addr:              cfg.Listen,
+				ReadHeaderTimeout: 15 * time.Second,
+				ReadTimeout:       15 * time.Second,
+				WriteTimeout:      10 * time.Second,
+				IdleTimeout:       30 * time.Second,
+				Handler:           peers,
+			}
+			if err := srv.ListenAndServe(); err != nil {
+				log.Fatal(err)
+			}
 		}()
 	})
 	return gc

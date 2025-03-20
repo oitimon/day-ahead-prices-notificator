@@ -13,4 +13,3 @@ docker run -it --rm -p 8080:8080 -p 9090:9090 --name day-ahead-prices-notificato
 go test -v ./... -coverprofile=coverage.out
 go tool cover -html=coverage.out
 ```
-

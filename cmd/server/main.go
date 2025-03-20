@@ -57,8 +57,18 @@ func main() {
 	r.Get("/", controller.IndexHandler)
 	r.Get("/api/v1/healthcheck", controller.HealthCheckHandler)
 	r.With(appMiddleware.DateMiddleware).Get("/day-prices/{year}-{month}-{day}", controller.DayPricesHandler)
+
+	// Some default settings for the server.
+	srv := &http.Server{
+		Addr:              ":" + cfg.Server.Port,
+		ReadHeaderTimeout: 15 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		Handler:           r,
+	}
 	log.Printf("Starting server on :%s\n", cfg.Server.Port)
-	if err := http.ListenAndServe(":"+cfg.Server.Port, r); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
