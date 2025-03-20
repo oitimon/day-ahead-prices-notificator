@@ -23,7 +23,6 @@ jobs:
 
       - name: Upload coverage to Codacy
         run: |
-          cat coverage.lcov
           curl -Os https://coverage.codacy.com/get.sh
           bash get.sh report -r coverage.lcov
         env:
