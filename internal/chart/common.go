@@ -44,7 +44,7 @@ func (c *CommonChart) HtmlChart(prices []decimal.Decimal, day time.Time) (html [
 			charts.WithXAxisOpts(opts.XAxis{AxisLabel: &opts.AxisLabel{Rotate: 90, Formatter: opts.FuncOpts(`function (value) { return value.padStart(2, '0')+':00'; }`)}}),
 			charts.WithYAxisOpts(opts.YAxis{AxisLabel: &opts.AxisLabel{Formatter: opts.FuncOpts(`function (value) { return value.toFixed(2); }`)}}),
 			charts.WithTooltipOpts(opts.Tooltip{Formatter: opts.FuncOpts(`function (params) {
-				return '<div align="center">' + params.name.padStart(2, '0')+':00' + ' - ' + (Number(params.name)+1).toString().padStart(2, '0')+':00' + '<br \><b>' + params.value + ' €' + '</b></span>';
+				return '<div align="center">' + params.name.padStart(2, '0')+':00' + ' - ' + (Number(params.name)+1).toString().padStart(2, '0')+':00' + '<br/><b>' + params.value + ' €' + '</b></span>';
 			}`)}),
 		).
 		SetSeriesOptions(charts.WithLabelOpts(opts.Label{Show: opts.Bool(true), Position: "inside"}))
