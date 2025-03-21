@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -77,7 +76,7 @@ func (cfg *App) Location() *time.Location {
 			var err error
 			cfg.location, err = time.LoadLocation(timeLocation)
 			if err != nil {
-				log.Fatal(err)
+				panic(err)
 			}
 		},
 	)
