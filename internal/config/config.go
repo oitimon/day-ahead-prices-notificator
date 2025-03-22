@@ -14,6 +14,7 @@ const tomorrowHourMin = 15
 const LoaderDriverStub = "stub"
 const LoaderDriverEnergyZero = "energyzero"
 const RepositoryDriverGroupCache = "groupCache"
+const RepositoryDriverInflux = "influx"
 const MessengerDriverTelegram = "telegram"
 
 type Api struct {
@@ -26,9 +27,17 @@ type GroupCache struct {
 	Peers  []string
 }
 
+type Influx struct {
+	Url     string
+	Orgname string
+	Bucket  string
+	Token   string
+}
+
 type Repository struct {
 	Driver     string
 	GroupCache GroupCache
+	Influx     Influx
 }
 
 type Loader struct {
@@ -91,6 +100,9 @@ func (cfg *App) SelfCheck() error {
 	if err := cfg.Analytics.selfCheck(); err != nil {
 		return err
 	}
+	if err := cfg.DataRepository.selfCheck(); err != nil {
+		return err
+	}
 	if err := cfg.Loader.selfCheck(); err != nil {
 		return err
 	}
@@ -137,6 +149,49 @@ func (l *Loader) selfCheck() error {
 func (s *Server) selfCheck() error {
 	if s.Port == "" {
 		return errors.New("SERVER_PORT not set")
+	}
+	return nil
+}
+
+func (g *GroupCache) selfCheck() error {
+	if g.Me == "" {
+		return errors.New("GROUPCACHE_ME not set")
+	}
+	if g.Listen == "" {
+		return errors.New("GROUPCACHE_LISTEN not set")
+	}
+	return nil
+}
+
+func (i *Influx) selfCheck() error {
+	if i.Url == "" {
+		return errors.New("INFLUX_URL not set")
+	}
+	if i.Orgname == "" {
+		return errors.New("INFLUX_ORGNAME not set")
+	}
+	if i.Bucket == "" {
+		return errors.New("INFLUX_BUCKET not set")
+	}
+	if i.Token == "" {
+		return errors.New("INFLUX_TOKEN not set")
+	}
+	return nil
+}
+
+func (r *Repository) selfCheck() error {
+	if r.Driver == RepositoryDriverGroupCache {
+		if err := r.GroupCache.selfCheck(); err != nil {
+			return err
+		}
+	} else if r.Driver == RepositoryDriverInflux {
+		if err := r.Influx.selfCheck(); err != nil {
+			return err
+		}
+	} else if r.Driver == "" {
+		return errors.New("REPOSITORY_DRIVER not set")
+	} else {
+		return fmt.Errorf("unknown REPOSITORY_DRIVER: %s", r.Driver)
 	}
 	return nil
 }

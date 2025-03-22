@@ -100,7 +100,6 @@ func (gc *GroupCache) Bytes() Bytes {
 }
 
 func (gc *groupCacheData) Get(startDate time.Time) (prices []decimal.Decimal, err error) {
-	// Implement the logic to get data from groupcache
 	var data []byte
 	if err = gc.cache.Get(nil, startDate.Format(time.RFC3339), groupcache.AllocatingByteSliceSink(&data)); err != nil {
 		err = errors.New("error getting data from groupcache: " + err.Error())
