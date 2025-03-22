@@ -67,7 +67,6 @@ func (inf *Influx) Bytes() Bytes {
 func (inf *Influx) Get(startDate time.Time) (prices []decimal.Decimal, err error) {
 	// Read from DB first.
 	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, startDate.Location())
-	// We create a sprintf-query as QueryWithParams is not working properly in the Go client.
 	query := fmt.Sprintf(`
 		from(bucket: "%s")
 			|> range(start: %s, stop: %s)
@@ -80,8 +79,10 @@ func (inf *Influx) Get(startDate time.Time) (prices []decimal.Decimal, err error
 		fieldNamePrice,
 	)
 	log.Printf("Query to Influx: %s\n", query)
-	//nolint: go_sql_rule-concat-sqli
+	// codacy-disable go_sql_rule-concat-sqli
+	// We create a sprintf-query as QueryWithParams is not working properly in the Go client.
 	result, err := inf.queryAPI.Query(inf.ctx, query)
+	// codacy-enable go_sql_rule-concat-sqli
 	if err != nil {
 		err = errors.New("error querying data from Influx: " + err.Error())
 		return
@@ -135,6 +136,7 @@ func (inf *Influx) loadData(startDate time.Time) (prices []decimal.Decimal, err 
 
 		inf.writeAPI.WritePoint(p)
 	}
+	inf.writeAPI.Flush()
 	log.Printf("Writing %d prices to InfluxDB\n", len(prices))
 	return
 }
