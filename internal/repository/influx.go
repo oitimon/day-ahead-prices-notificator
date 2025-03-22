@@ -10,7 +10,6 @@ import (
 	"github.com/oitimon/day-ahead-prices-notificator/internal/loader"
 	"github.com/shopspring/decimal"
 	"log"
-	"regexp"
 	"time"
 )
 
@@ -19,6 +18,7 @@ const fieldNamePrice = "price"
 const tagCurrency = "currency"
 
 type Influx struct {
+	ctx       context.Context
 	cfg       *config.Influx
 	client    influxdb2.Client
 	writeAPI  api.WriteAPI
@@ -29,6 +29,7 @@ type Influx struct {
 
 func NewInflux(ctx context.Context, cfg *config.Influx, ldr loader.Loader) *Influx {
 	inf := &Influx{
+		ctx:    ctx,
 		cfg:    cfg,
 		client: influxdb2.NewClient(cfg.Url, cfg.Token),
 		ldr:    ldr,
@@ -36,6 +37,13 @@ func NewInflux(ctx context.Context, cfg *config.Influx, ldr loader.Loader) *Infl
 	inf.writeAPI = inf.client.WriteAPI(cfg.Orgname, cfg.Bucket)
 	inf.queryAPI = inf.client.QueryAPI(cfg.Orgname)
 	inf.deleteAPI = inf.client.DeleteAPI()
+
+	errorsCh := inf.writeAPI.Errors()
+	go func() {
+		for err := range errorsCh {
+			log.Printf("Write error: %v", err)
+		}
+	}()
 
 	// Close the client when the context is done.
 	go func() {
@@ -65,14 +73,15 @@ func (inf *Influx) Get(startDate time.Time) (prices []decimal.Decimal, err error
 			|> range(start: %s, stop: %s)
 			|> filter(fn: (r) => r._measurement == "%s")
 			|> filter(fn: (r) => r._field == "%s")`,
-		inf.sanitize(inf.cfg.Bucket),
+		inf.cfg.Bucket,
 		startDate.Format(time.RFC3339),
 		endDate.Format(time.RFC3339),
-		inf.sanitize(measurementPrices),
-		inf.sanitize(fieldNamePrice),
+		measurementPrices,
+		fieldNamePrice,
 	)
 	log.Printf("Query to Influx: %s\n", query)
-	result, err := inf.queryAPI.Query(context.Background(), query)
+	//nolint: go_sql_rule-concat-sqli
+	result, err := inf.queryAPI.Query(inf.ctx, query)
 	if err != nil {
 		err = errors.New("error querying data from Influx: " + err.Error())
 		return
@@ -97,7 +106,7 @@ func (inf *Influx) loadData(startDate time.Time) (prices []decimal.Decimal, err 
 	// Clear existing data.
 	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, startDate.Location())
 	if err = inf.deleteAPI.DeleteWithName(
-		context.Background(),
+		inf.ctx,
 		inf.cfg.Orgname,
 		inf.cfg.Bucket,
 		startDate,
@@ -128,9 +137,4 @@ func (inf *Influx) loadData(startDate time.Time) (prices []decimal.Decimal, err 
 	}
 	log.Printf("Writing %d prices to InfluxDB\n", len(prices))
 	return
-}
-
-func (inf *Influx) sanitize(input string) string {
-	allowedChars := regexp.MustCompile(`[^a-zA-Z0-9 _\-.,@]`)
-	return allowedChars.ReplaceAllString(input, "")
 }

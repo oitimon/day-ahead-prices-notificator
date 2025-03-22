@@ -53,34 +53,11 @@ func main() {
 		log.Fatalf("Error creating DayAhead service: %v", err)
 	}
 
-	// Start the server.
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(appMiddleware.ConfigMiddleware(cfg))
-	r.Use(appMiddleware.DayAheadMiddleware(da))
-	r.Use(middleware.Timeout(30 * time.Second))
-	r.Get("/", controller.IndexHandler)
-	r.Get("/api/v1/healthcheck", controller.HealthCheckHandler)
-	r.With(appMiddleware.DateMiddleware).Get("/day-prices/{year}-{month}-{day}", controller.DayPricesHandler)
+	// Prepare the router.
+	r := router(cfg, da)
 
-	// Some default settings for the server.
-	srv := &http.Server{
-		Addr:              ":" + cfg.Server.Port,
-		ReadHeaderTimeout: 15 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		IdleTimeout:       30 * time.Second,
-		Handler:           r,
-	}
-
-	log.Printf("Starting server on :%s\n", cfg.Server.Port)
-	go func() {
-		err := srv.ListenAndServe()
-		log.Println("Server error:", err)
-		// We cancel if Server generates fatal in the process.
-		cancel()
-	}()
+	// Prepare the server.
+	srv := server(ctx, &cfg.Server, r)
 
 	// Wait signal.
 	sigChan := make(chan os.Signal, 1)
@@ -97,5 +74,44 @@ func main() {
 		// Was canceled by server, we don't have to wait it.
 		// Can be some jon here (sending buffered logs, etc).
 	}
+}
 
+func router(cfg *config.App, da dayahead.DayAhead) *chi.Mux {
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(30 * time.Second))
+
+	r.Use(appMiddleware.ConfigMiddleware(cfg))
+	r.Use(appMiddleware.DayAheadMiddleware(da))
+
+	r.Get("/", controller.IndexHandler)
+	r.Get("/api/v1/healthcheck", controller.HealthCheckHandler)
+	r.With(appMiddleware.DateMiddleware).Get("/day-prices/{year}-{month}-{day}", controller.DayPricesHandler)
+
+	return r
+}
+
+func server(ctx context.Context, cfg *config.Server, r chi.Router) *http.Server {
+	ctx, cancel := context.WithCancel(ctx)
+	// Some default settings for the server.
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		ReadHeaderTimeout: 15 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		Handler:           r,
+	}
+
+	log.Printf("Starting server on :%s\n", cfg.Port)
+	go func() {
+		err := srv.ListenAndServe()
+		log.Println("Server error:", err)
+		// We cancel if Server generates fatal in the process.
+		cancel()
+	}()
+
+	return srv
 }
