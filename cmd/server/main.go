@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
@@ -12,6 +13,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -34,6 +37,9 @@ func main() {
 		log.Fatalf("Error checking configuration: %v", err)
 	}
 
+	// Creating the context.
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// Load version from the file.
 	data, err := os.ReadFile("VERSION")
 	if err != nil {
@@ -42,7 +48,7 @@ func main() {
 	cfg.Analytics.Version = string(data)
 
 	// Prepare service(s).
-	da, err := dayahead.NewDayAhead(cfg)
+	da, err := dayahead.NewDayAhead(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Error creating DayAhead service: %v", err)
 	}
@@ -67,8 +73,29 @@ func main() {
 		IdleTimeout:       30 * time.Second,
 		Handler:           r,
 	}
+
 	log.Printf("Starting server on :%s\n", cfg.Server.Port)
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	go func() {
+		err := srv.ListenAndServe()
+		log.Println("Server error:", err)
+		// We cancel if Server generates fatal in the process.
+		cancel()
+	}()
+
+	// Wait signal.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	select {
+	case sig := <-sigChan:
+		log.Printf("Received signal: %v\n", sig)
+		cancel()
+		// Wait all server's handlers close connections and finish.
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("Error shutting down server: %v", err)
+		}
+	case <-ctx.Done():
+		// Was canceled by server, we don't have to wait it.
+		// Can be some jon here (sending buffered logs, etc).
 	}
+
 }
