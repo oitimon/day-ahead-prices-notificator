@@ -59,9 +59,9 @@ func (inf *Influx) Data() Data {
 	return inf
 }
 
-func (inf *Influx) Bytes() Bytes {
+func (inf *Influx) Bytes() (Bytes, error) {
 	// @TODO: Implement this method
-	return nil
+	return nil, errors.New("Bytes method not implemented")
 }
 
 func (inf *Influx) Get(startDate time.Time) (prices []decimal.Decimal, err error) {
