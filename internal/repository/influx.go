@@ -10,10 +10,12 @@ import (
 	"github.com/oitimon/day-ahead-prices-notificator/internal/loader"
 	"github.com/shopspring/decimal"
 	"log"
+	"regexp"
 	"time"
 )
 
 const measurementPrices = "prices"
+const fieldNamePrice = "price"
 const tagCurrency = "currency"
 
 type Influx struct {
@@ -57,12 +59,18 @@ func (inf *Influx) Bytes() Bytes {
 func (inf *Influx) Get(startDate time.Time) (prices []decimal.Decimal, err error) {
 	// Read from DB first.
 	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, startDate.Location())
+	// We create a sprintf-query as QueryWithParams is not working properly in the Go client.
 	query := fmt.Sprintf(`
 		from(bucket: "%s")
 			|> range(start: %s, stop: %s)
 			|> filter(fn: (r) => r._measurement == "%s")
-			|> filter(fn: (r) => r._field == "price")
-	`, inf.cfg.Bucket, startDate.Format(time.RFC3339), endDate.Format(time.RFC3339), measurementPrices)
+			|> filter(fn: (r) => r._field == "%s")`,
+		inf.sanitize(inf.cfg.Bucket),
+		startDate.Format(time.RFC3339),
+		endDate.Format(time.RFC3339),
+		inf.sanitize(measurementPrices),
+		inf.sanitize(fieldNamePrice),
+	)
 	log.Printf("Query to Influx: %s\n", query)
 	result, err := inf.queryAPI.Query(context.Background(), query)
 	if err != nil {
@@ -111,13 +119,18 @@ func (inf *Influx) loadData(startDate time.Time) (prices []decimal.Decimal, err 
 	for i := 0; i < len(prices); i++ {
 		p := influxdb2.NewPoint(
 			measurementPrices,
-			map[string]string{"currency": tagCurrency},                  // tags
-			map[string]interface{}{"price": prices[i].InexactFloat64()}, // fields
-			startDate.Add(time.Hour*time.Duration(i)),                   // timestamp
+			map[string]string{"currency": tagCurrency},                         // tags
+			map[string]interface{}{fieldNamePrice: prices[i].InexactFloat64()}, // fields
+			startDate.Add(time.Hour*time.Duration(i)),                          // timestamp
 		)
 
 		inf.writeAPI.WritePoint(p)
 	}
 	log.Printf("Writing %d prices to InfluxDB\n", len(prices))
 	return
+}
+
+func (inf *Influx) sanitize(input string) string {
+	allowedChars := regexp.MustCompile(`[^a-zA-Z0-9 _\-.,@]`)
+	return allowedChars.ReplaceAllString(input, "")
 }
