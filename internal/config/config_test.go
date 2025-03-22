@@ -13,8 +13,10 @@ func TestConfigSelfCheck(t *testing.T) {
 	cfg := GenerateTestConfig()
 
 	// Perform self-check
-	err := cfg.SelfCheck() // This should not panic or return an error
-	assert.Nil(t, err)
+	assert.Nil(t, cfg.SelfCheck())
+
+	cfg.DataRepository.Driver = RepositoryDriverInflux
+	assert.Nil(t, cfg.SelfCheck())
 }
 
 func TestConfigExample(t *testing.T) {

@@ -14,6 +14,12 @@ func GenerateTestConfig() *App {
 				Me:     "http://localhost:9090",
 				Listen: "localhost:9090",
 			},
+			Influx: Influx{
+				Url:     "http://localhost:8086",
+				Orgname: "test",
+				Bucket:  "test",
+				Token:   "test",
+			},
 		},
 		Loader: Loader{
 			InclBtw: true,
