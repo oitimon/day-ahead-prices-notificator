@@ -90,7 +90,12 @@ func (inf *Influx) Get(startDate time.Time) (prices []decimal.Decimal, err error
 	count := 0
 	for result.Next() {
 		count++
-		prices = append(prices, decimal.NewFromFloat(result.Record().Value().(float64)))
+		value, ok := result.Record().Value().(float64)
+		if !ok {
+			log.Printf("Unexpected type for value: %T", result.Record().Value())
+			continue
+		}
+		prices = append(prices, decimal.NewFromFloat(value))
 	}
 	if result.Err() != nil {
 		err = errors.New("error query parsing data from Influx: " + result.Err().Error())
