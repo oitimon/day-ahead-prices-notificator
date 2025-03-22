@@ -10,7 +10,6 @@ import (
 	"github.com/oitimon/day-ahead-prices-notificator/internal/loader"
 	"github.com/shopspring/decimal"
 	"log"
-	"regexp"
 	"time"
 )
 
@@ -26,10 +25,6 @@ type Influx struct {
 	queryAPI  api.QueryAPI
 	deleteAPI api.DeleteAPI
 	ldr       loader.Loader
-
-	bucket            string
-	measurementPrices string
-	fieldNamePrice    string
 }
 
 func NewInflux(ctx context.Context, cfg *config.Influx, ldr loader.Loader) *Influx {
@@ -39,10 +34,6 @@ func NewInflux(ctx context.Context, cfg *config.Influx, ldr loader.Loader) *Infl
 		client: influxdb2.NewClient(cfg.Url, cfg.Token),
 		ldr:    ldr,
 	}
-	inf.bucket = inf.sanitizeInput(cfg.Bucket)
-	inf.measurementPrices = inf.sanitizeInput(measurementPrices)
-	inf.fieldNamePrice = inf.sanitizeInput(fieldNamePrice)
-
 	inf.writeAPI = inf.client.WriteAPI(cfg.Orgname, cfg.Bucket)
 	inf.queryAPI = inf.client.QueryAPI(cfg.Orgname)
 	inf.deleteAPI = inf.client.DeleteAPI()
@@ -81,11 +72,11 @@ func (inf *Influx) Get(startDate time.Time) (prices []decimal.Decimal, err error
 			|> range(start: %s, stop: %s)
 			|> filter(fn: (r) => r._measurement == "%s")
 			|> filter(fn: (r) => r._field == "%s")`,
-		inf.bucket,
+		inf.cfg.Bucket,
 		startDate.Format(time.RFC3339),
 		endDate.Format(time.RFC3339),
-		inf.measurementPrices,
-		inf.fieldNamePrice,
+		measurementPrices,
+		fieldNamePrice,
 	)
 	log.Printf("Query to Influx: %s\n", query)
 	// We create a sprintf-query as QueryWithParams is not working properly in the Go client.
@@ -153,11 +144,4 @@ func (inf *Influx) loadData(startDate time.Time) (prices []decimal.Decimal, err 
 	inf.writeAPI.Flush()
 	log.Printf("Writing %d prices to InfluxDB\n", len(prices))
 	return
-}
-
-func (inf *Influx) sanitizeInput(input string) string {
-	// Sanitize the input string to prevent injection attacks.
-	// This is a simple example, you may want to use a more robust sanitization method.
-	allowedChars := regexp.MustCompile(`[^a-zA-Z0-9 _\-.,@]`)
-	return allowedChars.ReplaceAllString(input, "")
 }

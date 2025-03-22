@@ -21,21 +21,7 @@ import (
 const chartHtmlFilename = "/tmp/epex_nl_da_prices_chart.html"
 
 func main() {
-	cfg := &config.App{}
-	if _, err := os.Stat(".env"); err == nil {
-		// We load and parse the .env file only if it exists,
-		// otherwise we rely on the environment variables.
-		err := godotenv.Load()
-		if err != nil {
-			log.Fatal("Error loading .env file")
-		}
-	}
-	if err := envconfig.Process("", cfg); err != nil {
-		log.Fatalf("Error processing environment variables: %v", err)
-	}
-	if err := cfg.SelfCheck(); err != nil {
-		log.Fatalf("Error checking configuration: %v", err)
-	}
+	cfg := loadConfig()
 
 	// Creating the context.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -74,6 +60,26 @@ func main() {
 		// Was canceled by server, we don't have to wait it.
 		// Can be some jon here (sending buffered logs, etc).
 	}
+}
+
+func loadConfig() *config.App {
+	cfg := &config.App{}
+	if _, err := os.Stat(".env"); err == nil {
+		// We load and parse the .env file only if it exists,
+		// otherwise we rely on the environment variables.
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	}
+	if err := envconfig.Process("", cfg); err != nil {
+		log.Fatalf("Error processing environment variables: %v", err)
+	}
+	if err := cfg.SelfCheck(); err != nil {
+		log.Fatalf("Error checking configuration: %v", err)
+	}
+
+	return cfg
 }
 
 func router(cfg *config.App, da dayahead.DayAhead) *chi.Mux {
