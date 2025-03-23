@@ -127,6 +127,10 @@ func (inf *Influx) loadData(ctx context.Context, startDate time.Time) (prices []
 	}
 
 	// Fetch data from the loader.
+	if inf.prev == nil {
+		err = errors.New("previous repository not set for InfluxDB")
+		return
+	}
 	prices, err = inf.prev.Get(ctx, startDate)
 	if err != nil {
 		err = errors.New("error fetching prices: " + err.Error())

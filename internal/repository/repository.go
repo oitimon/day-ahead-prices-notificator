@@ -36,9 +36,9 @@ func NewDataRepository(ctx context.Context, cfg *config.Repository) (dr Data, er
 		}
 
 		if dr == nil && !repo.IsFinal() {
-			err = fmt.Errorf("driver %s is not final", driver)
+			err = fmt.Errorf("driver %s cannot be started because it is not final", driver)
 		} else if dr != nil && repo.IsFinal() {
-			err = fmt.Errorf("driver %s is final", driver)
+			err = fmt.Errorf("driver %s cannot be chained because it is final", driver)
 		}
 
 		dr = repo

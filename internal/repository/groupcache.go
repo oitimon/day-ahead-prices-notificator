@@ -53,6 +53,10 @@ func NewGroupCache(cfg *config.GroupCache, prev Data) *GroupCache {
 						err = errors.New("error parsing date: " + err.Error())
 						return
 					}
+					if gc.data.prev == nil {
+						err = errors.New("previous repository not set for Groupcache")
+						return
+					}
 					prices, err := gc.data.prev.Get(ctx, startDate)
 					if err != nil {
 						err = errors.New("error fetching prices: " + err.Error())
