@@ -201,16 +201,19 @@ func checkRequiredFields(fields map[string]any, prefix string) (err error) {
 		case string:
 			if fieldValue.(string) == "" {
 				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
 			}
 		case decimal.Decimal:
 			if fieldValue.(decimal.Decimal).IsZero() {
 				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
 			}
 		case float64:
 			if fieldValue.(float64) == 0 {
 				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
 			}
 		}
 	}
-	return nil
+	return
 }
