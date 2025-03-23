@@ -1,6 +1,7 @@
-package loader
+package repository
 
 import (
+	"context"
 	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"testing"
 	"time"
@@ -15,11 +16,14 @@ import (
 func TestFetchPrices(t *testing.T) {
 	server := generateFakeServer()
 	defer server.Close()
-	cfg := config.GenerateTestConfig()
-	cfg.Loader.Driver = config.LoaderDriverEnergyZero
-	cfg.Loader.API.Endpoint = server.URL
+	cfg := &config.Energyzero{
+		API: config.Api{
+			Endpoint: server.URL,
+		},
+	}
+	loader := NewEnergyzero(context.Background(), cfg)
 
-	data, err := FetchPrices(&cfg.Loader, time.Now())
+	data, err := loader.Get(time.Now())
 	require.NoError(t, err)
 	assert.NotEmpty(t, data)
 	assert.Equal(t, float64(200), data[1].InexactFloat64())
@@ -34,19 +38,20 @@ func TestFetchPrices_Error(t *testing.T) {
 		),
 	)
 	defer server.Close()
+	cfg := &config.Energyzero{
+		API: config.Api{
+			Endpoint: server.URL,
+		},
+	}
+	loader := NewEnergyzero(context.Background(), cfg)
 
-	_, err := FetchPrices(generateFakeConfig(server.URL), time.Now())
+	_, err := loader.Get(time.Now())
 	assert.Error(t, err)
 }
 
-func generateFakeConfig(serverUrl string) *config.Loader {
-	return &config.Loader{
-		InclBtw: true,
-		Driver:  "test",
-		API: config.Api{
-			Endpoint: serverUrl,
-		},
-	}
+func TestIsFinal(t *testing.T) {
+	e := &Energyzero{}
+	assert.True(t, e.IsFinal())
 }
 
 func generateFakeServer() *httptest.Server {

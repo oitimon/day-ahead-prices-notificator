@@ -87,7 +87,7 @@ func router(cfg *config.App, da dayahead.DayAhead) *chi.Mux {
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(middleware.Timeout(10 * time.Second))
 
 	r.Use(appMiddleware.ConfigMiddleware(cfg))
 	r.Use(appMiddleware.DayAheadMiddleware(da))

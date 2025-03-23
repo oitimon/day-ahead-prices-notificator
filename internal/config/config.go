@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,10 +12,10 @@ import (
 
 const timeLocation = "Europe/Amsterdam"
 const tomorrowHourMin = 15
-const LoaderDriverStub = "stub"
-const LoaderDriverEnergyZero = "energyzero"
-const RepositoryDriverGroupCache = "groupCache"
+const RepositoryDriverGroupCache = "groupcache"
 const RepositoryDriverInflux = "influx"
+const RepositoryDriverEnergyzero = "energyzero"
+const RepositoryDriverStub = "stub"
 const MessengerDriverTelegram = "telegram"
 
 type Api struct {
@@ -34,16 +35,15 @@ type Influx struct {
 	Token   string
 }
 
+type Energyzero struct {
+	API Api
+}
+
 type Repository struct {
 	Driver     string
 	GroupCache GroupCache
 	Influx     Influx
-}
-
-type Loader struct {
-	InclBtw bool
-	Driver  string
-	API     Api
+	Energyzero Energyzero
 }
 
 type Server struct {
@@ -71,7 +71,6 @@ type App struct {
 	Analytics       Analytics
 	DataRepository  Repository
 	ChartRepository Repository
-	Loader          Loader
 	Server          Server
 	Messenger       Messenger
 
@@ -100,10 +99,10 @@ func (cfg *App) SelfCheck() error {
 	if err := cfg.Analytics.selfCheck(); err != nil {
 		return err
 	}
-	if err := cfg.DataRepository.selfCheck(); err != nil {
+	if err := cfg.DataRepository.selfCheck("DATA"); err != nil {
 		return err
 	}
-	if err := cfg.Loader.selfCheck(); err != nil {
+	if err := cfg.ChartRepository.selfCheck("CHART"); err != nil {
 		return err
 	}
 	if err := cfg.Server.selfCheck(); err != nil {
@@ -129,21 +128,6 @@ func (a *Analytics) selfCheck() error {
 
 func (a *Analytics) MinDate() time.Time {
 	return time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-}
-
-func (l *Loader) selfCheck() error {
-	if l.Driver == LoaderDriverEnergyZero {
-		if l.API.Endpoint == "" {
-			return errors.New("LOADER_API_ENDPOINT not set")
-		}
-	} else if l.Driver == LoaderDriverStub {
-		// nothing to check
-	} else if l.Driver == "" {
-		return errors.New("LOADER_DRIVER not set")
-	} else {
-		return fmt.Errorf("unknown LOADER_DRIVER: %s", l.Driver)
-	}
-	return nil
 }
 
 func (s *Server) selfCheck() error {
@@ -179,19 +163,41 @@ func (i *Influx) selfCheck() error {
 	return nil
 }
 
-func (r *Repository) selfCheck() error {
-	if r.Driver == RepositoryDriverGroupCache {
-		if err := r.GroupCache.selfCheck(); err != nil {
-			return err
+func (e *Energyzero) selfCheck() error {
+	return e.API.selfCheck("DATAREPOSITORY_ENERGYZERO")
+}
+
+func (a *Api) selfCheck(prefix string) error {
+	if a.Endpoint == "" {
+		return fmt.Errorf("%s_API_ENDPOINT not set", prefix)
+	}
+	return nil
+}
+
+func (r *Repository) selfCheck(prefix string) error {
+	drivers := strings.Split(r.Driver, ",")
+
+	for _, driver := range drivers {
+		driver = strings.TrimSpace(driver)
+		if driver == RepositoryDriverGroupCache {
+			if err := r.GroupCache.selfCheck(); err != nil {
+				return err
+			}
+		} else if driver == RepositoryDriverInflux {
+			if err := r.Influx.selfCheck(); err != nil {
+				return err
+			}
+		} else if driver == RepositoryDriverEnergyzero {
+			if err := r.Energyzero.selfCheck(); err != nil {
+				return err
+			}
+		} else if driver == RepositoryDriverStub {
+			// No check needed for stub
+		} else if driver == "" {
+			return fmt.Errorf("%sREPOSITORY_DRIVER not set", prefix)
+		} else {
+			return fmt.Errorf("unknown %sREPOSITORY_DRIVER: %s", prefix, driver)
 		}
-	} else if r.Driver == RepositoryDriverInflux {
-		if err := r.Influx.selfCheck(); err != nil {
-			return err
-		}
-	} else if r.Driver == "" {
-		return errors.New("REPOSITORY_DRIVER not set")
-	} else {
-		return fmt.Errorf("unknown REPOSITORY_DRIVER: %s", r.Driver)
 	}
 	return nil
 }

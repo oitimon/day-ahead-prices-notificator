@@ -1,12 +1,12 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/golang/groupcache"
 	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/loader"
 	"github.com/shopspring/decimal"
 	"github.com/valyala/fastjson"
 	"log"
@@ -29,12 +29,13 @@ type GroupCache struct {
 type groupCacheData struct {
 	cache  *groupcache.Group
 	parser fastjson.Parser
+	prev   Data
 }
 
 type groupCacheBytes struct {
 }
 
-func NewGroupCache(cfg *config.GroupCache, ldr loader.Loader) *GroupCache {
+func NewGroupCache(cfg *config.GroupCache, prev Data) *GroupCache {
 	gc.Do(func() {
 		peers := groupcache.NewHTTPPool(cfg.Me)
 		if len(cfg.Peers) > 0 {
@@ -42,15 +43,17 @@ func NewGroupCache(cfg *config.GroupCache, ldr loader.Loader) *GroupCache {
 		}
 
 		gc.data = groupCacheData{
+			prev:   prev,
+			parser: fastjson.Parser{},
 			cache: groupcache.NewGroup("data", 64<<20, groupcache.GetterFunc(
 				func(ctx groupcache.Context, key string, dest groupcache.Sink) (err error) {
-					log.Println("GroupCache, fetching from external source:", key)
+					log.Println("Groupcache, fetching from external source:", key)
 					startDate, err := time.Parse(time.RFC3339, key)
 					if err != nil {
 						err = errors.New("error parsing date: " + err.Error())
 						return
 					}
-					prices, err := ldr.Fetch(startDate)
+					prices, err := gc.data.prev.Get(ctx, startDate)
 					if err != nil {
 						err = errors.New("error fetching prices: " + err.Error())
 						return
@@ -67,7 +70,6 @@ func NewGroupCache(cfg *config.GroupCache, ldr loader.Loader) *GroupCache {
 					return
 				},
 			)),
-			parser: fastjson.Parser{},
 		}
 
 		gc.bytes = groupCacheBytes{}
@@ -99,9 +101,13 @@ func (gc *GroupCache) Bytes() Bytes {
 	return &gc.bytes
 }
 
-func (gc *groupCacheData) Get(startDate time.Time) (prices []decimal.Decimal, err error) {
+func (*groupCacheData) IsFinal() bool {
+	return false
+}
+
+func (gc *groupCacheData) Get(ctx context.Context, startDate time.Time) (prices []decimal.Decimal, err error) {
 	var data []byte
-	if err = gc.cache.Get(nil, startDate.Format(time.RFC3339), groupcache.AllocatingByteSliceSink(&data)); err != nil {
+	if err = gc.cache.Get(ctx, startDate.Format(time.RFC3339), groupcache.AllocatingByteSliceSink(&data)); err != nil {
 		err = errors.New("error getting data from groupcache: " + err.Error())
 		return
 	}
@@ -131,7 +137,11 @@ func (gc *groupCacheData) Get(startDate time.Time) (prices []decimal.Decimal, er
 	return
 }
 
-func (gc *groupCacheBytes) Get(startDate time.Time) ([]byte, error) {
+func (gc *groupCacheBytes) Get(ctx context.Context, startDate time.Time) ([]byte, error) {
 	// Implement the logic to get data from groupcache
 	return nil, errors.New("not implemented")
+}
+
+func (*groupCacheBytes) IsFinal() bool {
+	return false
 }
