@@ -14,26 +14,33 @@ func NewDataRepository(ctx context.Context, cfg *config.Repository) (dr Data, er
 	for i := len(drivers) - 1; i >= 0; i-- {
 		driver := strings.TrimSpace(drivers[i])
 		var repo Data
-		switch driver {
-		case config.RepositoryDriverGroupCache:
-			repo = NewGroupCache(&cfg.GroupCache, dr).Data()
-		case config.RepositoryDriverInflux:
-			if repo, err = NewInflux(ctx, &cfg.Influx, dr); err != nil {
+		if repo, err = func() (repo Data, err error) {
+			switch driver {
+			case config.RepositoryDriverGroupCache:
+				repo = NewGroupCache(&cfg.GroupCache, dr).Data()
+			case config.RepositoryDriverInflux:
+				if repo, err = NewInflux(ctx, &cfg.Influx, dr); err != nil {
+					return
+				}
+			case config.RepositoryDriverEnergyzero:
+				repo = NewEnergyzero(&cfg.Energyzero)
+			case config.RepositoryDriverStub:
+				repo = NewStub()
+			default:
+				err = errors.New("unknown data repository driver")
 				return
 			}
-		case config.RepositoryDriverEnergyzero:
-			repo = NewEnergyzero(&cfg.Energyzero)
-		case config.RepositoryDriverStub:
-			repo = NewStub()
-		default:
-			err = errors.New("unknown data repository driver")
+			return
+		}(); err != nil {
 			return
 		}
+
 		if dr == nil && !repo.IsFinal() {
 			err = fmt.Errorf("driver %s is not final", driver)
 		} else if dr != nil && repo.IsFinal() {
 			err = fmt.Errorf("driver %s is final", driver)
 		}
+
 		dr = repo
 	}
 
