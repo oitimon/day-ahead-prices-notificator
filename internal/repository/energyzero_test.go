@@ -21,9 +21,9 @@ func TestFetchPrices(t *testing.T) {
 			Endpoint: server.URL,
 		},
 	}
-	loader := NewEnergyzero(context.Background(), cfg)
+	loader := NewEnergyzero(cfg)
 
-	data, err := loader.Get(time.Now())
+	data, err := loader.Get(context.Background(), time.Now())
 	require.NoError(t, err)
 	assert.NotEmpty(t, data)
 	assert.Equal(t, float64(200), data[1].InexactFloat64())
@@ -43,9 +43,9 @@ func TestFetchPrices_Error(t *testing.T) {
 			Endpoint: server.URL,
 		},
 	}
-	loader := NewEnergyzero(context.Background(), cfg)
+	loader := NewEnergyzero(cfg)
 
-	_, err := loader.Get(time.Now())
+	_, err := loader.Get(context.Background(), time.Now())
 	assert.Error(t, err)
 }
 
