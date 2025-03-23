@@ -20,7 +20,7 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate the chart as HTML
-	html, err := da.GetHtmlChart(day)
+	html, err := da.GetHtmlChart(ctx, day)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "server chart error", http.StatusInternalServerError)

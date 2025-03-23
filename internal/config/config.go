@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,10 +12,10 @@ import (
 
 const timeLocation = "Europe/Amsterdam"
 const tomorrowHourMin = 15
-const LoaderDriverStub = "stub"
-const LoaderDriverEnergyZero = "energyzero"
-const RepositoryDriverGroupCache = "groupCache"
+const RepositoryDriverGroupCache = "groupcache"
 const RepositoryDriverInflux = "influx"
+const RepositoryDriverEnergyzero = "energyzero"
+const RepositoryDriverStub = "stub"
 const MessengerDriverTelegram = "telegram"
 
 type Api struct {
@@ -34,16 +35,15 @@ type Influx struct {
 	Token   string
 }
 
+type Energyzero struct {
+	API Api
+}
+
 type Repository struct {
 	Driver     string
 	GroupCache GroupCache
 	Influx     Influx
-}
-
-type Loader struct {
-	InclBtw bool
-	Driver  string
-	API     Api
+	Energyzero Energyzero
 }
 
 type Server struct {
@@ -71,7 +71,6 @@ type App struct {
 	Analytics       Analytics
 	DataRepository  Repository
 	ChartRepository Repository
-	Loader          Loader
 	Server          Server
 	Messenger       Messenger
 
@@ -97,20 +96,16 @@ func (cfg *App) TomorrowHourMin() int {
 }
 
 func (cfg *App) SelfCheck() error {
-	if err := cfg.Analytics.selfCheck(); err != nil {
-		return err
-	}
-	if err := cfg.DataRepository.selfCheck(); err != nil {
-		return err
-	}
-	if err := cfg.Loader.selfCheck(); err != nil {
-		return err
-	}
-	if err := cfg.Server.selfCheck(); err != nil {
-		return err
-	}
-	if err := cfg.Messenger.selfCheck(); err != nil {
-		return err
+	for _, check := range []error{
+		cfg.Analytics.selfCheck(),
+		cfg.DataRepository.selfCheck("DATA"),
+		cfg.ChartRepository.selfCheck("CHART"),
+		cfg.Server.selfCheck(),
+		cfg.Messenger.selfCheck(),
+	} {
+		if check != nil {
+			return check
+		}
 	}
 
 	cfg.Location()
@@ -118,91 +113,79 @@ func (cfg *App) SelfCheck() error {
 }
 
 func (a *Analytics) selfCheck() error {
-	if a.HighPrice.IsZero() {
-		return errors.New("ANALYTICS_HIGHPRICE not set")
-	}
-	if a.LowPrice.IsZero() {
-		return errors.New("ANALYTICS_LOWPRICE not set")
-	}
-	return nil
+	return checkRequiredFields(map[string]any{
+		"ANALYTICS_HIGHPRICE": a.HighPrice,
+		"ANALYTICS_LOWPRICE":  a.LowPrice,
+	}, "")
 }
 
 func (a *Analytics) MinDate() time.Time {
 	return time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 }
 
-func (l *Loader) selfCheck() error {
-	if l.Driver == LoaderDriverEnergyZero {
-		if l.API.Endpoint == "" {
-			return errors.New("LOADER_API_ENDPOINT not set")
-		}
-	} else if l.Driver == LoaderDriverStub {
-		// nothing to check
-	} else if l.Driver == "" {
-		return errors.New("LOADER_DRIVER not set")
-	} else {
-		return fmt.Errorf("unknown LOADER_DRIVER: %s", l.Driver)
-	}
-	return nil
-}
-
 func (s *Server) selfCheck() error {
-	if s.Port == "" {
-		return errors.New("SERVER_PORT not set")
-	}
-	return nil
+	return checkRequiredFields(map[string]any{
+		"SERVER_PORT": s.Port,
+	}, "")
 }
 
 func (g *GroupCache) selfCheck() error {
-	if g.Me == "" {
-		return errors.New("GROUPCACHE_ME not set")
-	}
-	if g.Listen == "" {
-		return errors.New("GROUPCACHE_LISTEN not set")
-	}
-	return nil
+	return checkRequiredFields(map[string]any{
+		"GROUPCACHE_ME":     g.Me,
+		"GROUPCACHE_LISTEN": g.Listen,
+	}, "")
 }
 
 func (i *Influx) selfCheck() error {
-	if i.Url == "" {
-		return errors.New("INFLUX_URL not set")
-	}
-	if i.Orgname == "" {
-		return errors.New("INFLUX_ORGNAME not set")
-	}
-	if i.Bucket == "" {
-		return errors.New("INFLUX_BUCKET not set")
-	}
-	if i.Token == "" {
-		return errors.New("INFLUX_TOKEN not set")
-	}
-	return nil
+	return checkRequiredFields(map[string]any{
+		"INFLUX_URL":     i.Url,
+		"INFLUX_ORGNAME": i.Orgname,
+		"INFLUX_BUCKET":  i.Bucket,
+		"INFLUX_TOKEN":   i.Token,
+	}, "")
 }
 
-func (r *Repository) selfCheck() error {
-	if r.Driver == RepositoryDriverGroupCache {
-		if err := r.GroupCache.selfCheck(); err != nil {
-			return err
+func (e *Energyzero) selfCheck() error {
+	return e.API.selfCheck("DATAREPOSITORY_ENERGYZERO_")
+}
+
+func (a *Api) selfCheck(prefix string) error {
+	return checkRequiredFields(map[string]any{
+		"API_ENDPOINT": a.Endpoint,
+	}, prefix)
+}
+
+func (r *Repository) selfCheck(prefix string) error {
+	drivers := strings.Split(r.Driver, ",")
+
+	for _, driver := range drivers {
+		driver = strings.TrimSpace(driver)
+		if check, ok := map[string]func() error{
+			RepositoryDriverGroupCache: r.GroupCache.selfCheck,
+			RepositoryDriverInflux:     r.Influx.selfCheck,
+			RepositoryDriverEnergyzero: r.Energyzero.selfCheck,
+			RepositoryDriverStub:       func() error { return nil },
+		}[driver]; ok {
+			if err := check(); err != nil {
+				return err
+			}
+		} else if driver == "" {
+			return fmt.Errorf("%sREPOSITORY_DRIVER not set", prefix)
+		} else {
+			return fmt.Errorf("unknown %sREPOSITORY_DRIVER: %s", prefix, driver)
 		}
-	} else if r.Driver == RepositoryDriverInflux {
-		if err := r.Influx.selfCheck(); err != nil {
-			return err
-		}
-	} else if r.Driver == "" {
-		return errors.New("REPOSITORY_DRIVER not set")
-	} else {
-		return fmt.Errorf("unknown REPOSITORY_DRIVER: %s", r.Driver)
 	}
+
 	return nil
 }
 
 func (m *Messenger) selfCheck() error {
 	if m.Driver == MessengerDriverTelegram {
-		if m.Telegram.Token == "" {
-			return errors.New("MESSENGER_TELEGRAM_TOKEN not set")
-		}
-		if m.Telegram.ChatID == 0 {
-			return errors.New("MESSENGER_TELEGRAM_CHATID not set")
+		if err := checkRequiredFields(map[string]any{
+			"MESSENGER_TELEGRAM_TOKEN":  m.Telegram.Token,
+			"MESSENGER_TELEGRAM_CHATID": m.Telegram.ChatID,
+		}, ""); err != nil {
+			return err
 		}
 	} else if m.Driver == "" {
 		return errors.New("MESSENGER_DRIVER not set")
@@ -210,4 +193,27 @@ func (m *Messenger) selfCheck() error {
 		return fmt.Errorf("unknown MESSENGER_DRIVER: %s", m.Driver)
 	}
 	return nil
+}
+
+func checkRequiredFields(fields map[string]any, prefix string) (err error) {
+	for fieldName, fieldValue := range fields {
+		switch fieldValue.(type) {
+		case string:
+			if fieldValue.(string) == "" {
+				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
+			}
+		case decimal.Decimal:
+			if fieldValue.(decimal.Decimal).IsZero() {
+				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
+			}
+		case float64:
+			if fieldValue.(float64) == 0 {
+				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
+			}
+		}
+	}
+	return
 }

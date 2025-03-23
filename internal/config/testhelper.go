@@ -20,12 +20,17 @@ func GenerateTestConfig() *App {
 				Bucket:  "test",
 				Token:   "test",
 			},
+			Energyzero: Energyzero{
+				API: Api{
+					Endpoint: "http://localhost:8080",
+				},
+			},
 		},
-		Loader: Loader{
-			InclBtw: true,
-			Driver:  "energyzero",
-			API: Api{
-				Endpoint: "http://localhost:8080",
+		ChartRepository: Repository{
+			Driver: RepositoryDriverGroupCache,
+			GroupCache: GroupCache{
+				Me:     "http://localhost:9090",
+				Listen: "localhost:9090",
 			},
 		},
 		Server: Server{

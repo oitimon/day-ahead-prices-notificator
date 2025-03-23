@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/oitimon/day-ahead-prices-notificator/internal/chart"
 	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/loader"
 	"github.com/oitimon/day-ahead-prices-notificator/internal/repository"
 	"github.com/shopspring/decimal"
 	"time"
@@ -15,7 +14,7 @@ import (
 type Service struct {
 	cfg             *config.App
 	dataRepository  repository.Data
-	bytesRepository repository.Bytes
+	chartRepository repository.Bytes
 	chart           chart.Chart
 }
 
@@ -26,32 +25,31 @@ func NewDayAhead(ctx context.Context, cfg *config.App) (DayAhead, error) {
 	var err error
 
 	// Prepare Loader and Repositories.
-	ldr := loader.NewLoader(&cfg.Loader)
-	s.dataRepository, err = repository.NewDataRepository(ctx, &cfg.DataRepository, ldr)
+	s.dataRepository, err = repository.NewDataRepository(ctx, &cfg.DataRepository)
 	if err != nil {
-		err = fmt.Errorf("Error creating data repository: %v", err)
+		return nil, fmt.Errorf("Error creating data repository: %v", err)
 	}
-	s.bytesRepository, err = repository.NewBytesRepository(ctx, &cfg.DataRepository)
+	s.chartRepository, err = repository.NewBytesRepository(ctx, &cfg.ChartRepository)
 	if err != nil {
-		err = fmt.Errorf("Error creating bytes repository: %v", err)
+		return nil, fmt.Errorf("Error creating bytes repository: %v", err)
 	}
 
 	// Prepare Chart.
 	s.chart = chart.NewChart(&cfg.Analytics)
 
-	return s, err
+	return s, nil
 }
 
-func (s *Service) GetHtmlChart(day time.Time) (html []byte, err error) {
-	prices, err := s.dataRepository.Get(day)
+func (s *Service) GetHtmlChart(ctx context.Context, day time.Time) (html []byte, err error) {
+	prices, err := s.dataRepository.Get(ctx, day)
 	if err != nil {
 		return
 	}
 	return s.chart.HtmlChart(prices, day)
 }
 
-func (s *Service) GetPrices(startDate time.Time) ([]decimal.Decimal, error) {
-	return s.dataRepository.Get(startDate)
+func (s *Service) GetPrices(ctx context.Context, startDate time.Time) ([]decimal.Decimal, error) {
+	return s.dataRepository.Get(ctx, startDate)
 }
 
 func (s *Service) ValidateDay(day time.Time) error {
