@@ -110,7 +110,7 @@ func (gc *GroupCache) Bytes() Bytes {
 
 func (gc *GroupCache) serializeKey(startDate time.Time, options *Options) string {
 	key := startDate.Format(time.RFC3339)
-	if options.withVat {
+	if options.WithVat {
 		key += "_wVat"
 	}
 	return key
@@ -137,7 +137,7 @@ func (*groupCacheData) IsFinal() bool {
 }
 
 func (gc *groupCacheData) Get(ctx context.Context, startDate time.Time, opts ...Option) (prices []decimal.Decimal, err error) {
-	options := newOptions(opts...)
+	options := NewOptions(opts...)
 	var data []byte
 	if err = gc.cache.Get(ctx, gc.parent.serializeKey(startDate, options), groupcache.AllocatingByteSliceSink(&data)); err != nil {
 		err = errors.New("error getting data from groupcache: " + err.Error())

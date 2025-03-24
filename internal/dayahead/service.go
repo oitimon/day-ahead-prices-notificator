@@ -1,6 +1,7 @@
 package dayahead
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -40,20 +41,40 @@ func NewDayAhead(ctx context.Context, cfg *config.App) (DayAhead, error) {
 	return s, nil
 }
 
-func (s *Service) GetHtmlChart(ctx context.Context, day time.Time) (html []byte, err error) {
-	prices, err := s.dataRepository.Get(ctx, day, repository.WithVat(s.cfg.Ui.IncludingVat))
+func (s *Service) GetHtmlChart(ctx context.Context, day time.Time, opts ...repository.Option) (html []byte, err error) {
+	options := repository.NewOptions(opts...)
+	prices, err := s.dataRepository.Get(ctx, day, opts...)
 	if err != nil {
 		return
 	}
-	return s.chart.HtmlChart(prices, day)
+	if html, err = s.chart.HtmlChart(prices, day); err != nil {
+		return
+	}
+
+	var before, after string
+	dayBefore := day.AddDate(0, 0, -1)
+	if s.ValidateDay(dayBefore) == nil {
+		before = fmt.Sprintf(`<a href="/day-prices/%s?vat=%v">Before</a>`, dayBefore.Format("2006-01-02"), options.WithVat)
+	}
+	dayAfter := day.AddDate(0, 0, 1)
+	if s.ValidateDay(dayAfter) == nil {
+		after = fmt.Sprintf(`<a href="/day-prices/%s?vat=%v">After</a>`, day.AddDate(0, 0, 1).Format("2006-01-02"), options.WithVat)
+	}
+
+	html = bytes.Replace(html, []byte("<div class=\"container\">"), []byte(
+		fmt.Sprintf(`<div class="container">%s&nbsp;%s</div><div class="container">`,
+			before, after),
+	), 1)
+
+	return
 }
 
-func (s *Service) GetPrices(ctx context.Context, startDate time.Time) ([]decimal.Decimal, error) {
-	return s.dataRepository.Get(ctx, startDate, repository.WithVat(s.cfg.Ui.IncludingVat))
+func (s *Service) GetPrices(ctx context.Context, startDate time.Time, opts ...repository.Option) ([]decimal.Decimal, error) {
+	return s.dataRepository.Get(ctx, startDate, opts...)
 }
 
 func (s *Service) ValidateDay(day time.Time) error {
-	if day.Before(s.cfg.Ui.Analytics.MinDate()) {
+	if day.Before(s.cfg.Ui.Analytics.MinDate(s.cfg.Location())) {
 		return errors.New("day is too old")
 	}
 

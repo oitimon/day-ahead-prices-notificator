@@ -94,7 +94,8 @@ func router(cfg *config.App, da dayahead.DayAhead) *chi.Mux {
 
 	r.Get("/", controller.IndexHandler)
 	r.Get("/api/v1/healthcheck", controller.HealthCheckHandler)
-	r.With(appMiddleware.DateMiddleware).Get("/day-prices/{year}-{month}-{day}", controller.DayPricesHandler)
+	r.With(appMiddleware.DateMiddleware).With(appMiddleware.VatMiddleware).
+		Get("/day-prices/{year}-{month}-{day}", controller.DayPricesHandler)
 
 	return r
 }
@@ -110,6 +111,10 @@ func server(ctx context.Context, cfg *config.Server, r chi.Router) *http.Server 
 		IdleTimeout:       30 * time.Second,
 		Handler:           r,
 	}
+
+	// Static files.
+	fs := http.FileServer(http.Dir("static"))
+	r.Handle("/favicon.ico", fs) // only ico file for now
 
 	log.Printf("Starting server on :%s\n", cfg.Port)
 	go func() {
