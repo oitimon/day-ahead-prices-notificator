@@ -7,4 +7,5 @@
 !cmd/**
 !internal/**
 !pkg/**
+!static/**
 !VERSION
