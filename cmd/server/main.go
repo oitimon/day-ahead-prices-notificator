@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error opening VERSION file")
 	}
-	cfg.Analytics.Version = string(data)
+	cfg.Ui.Version = string(data)
 
 	// Prepare service(s).
 	da, err := dayahead.NewDayAhead(ctx, cfg)

@@ -63,12 +63,17 @@ type Messenger struct {
 type Analytics struct {
 	HighPrice decimal.Decimal
 	LowPrice  decimal.Decimal
-	Version   string
+}
+
+type Ui struct {
+	Analytics    Analytics
+	Version      string
+	IncludingVat bool
 }
 
 // App Config struct to hold environment variables
 type App struct {
-	Analytics       Analytics
+	Ui              Ui
 	DataRepository  Repository
 	ChartRepository Repository
 	Server          Server
@@ -97,7 +102,7 @@ func (cfg *App) TomorrowHourMin() int {
 
 func (cfg *App) SelfCheck() error {
 	for _, check := range []error{
-		cfg.Analytics.selfCheck(),
+		cfg.Ui.selfCheck(),
 		cfg.DataRepository.selfCheck("DATA"),
 		cfg.ChartRepository.selfCheck("CHART"),
 		cfg.Server.selfCheck(),
@@ -112,11 +117,15 @@ func (cfg *App) SelfCheck() error {
 	return nil
 }
 
-func (a *Analytics) selfCheck() error {
+func (u *Ui) selfCheck() error {
+	return u.Analytics.selfCheck("UI_")
+}
+
+func (a *Analytics) selfCheck(prefix string) error {
 	return checkRequiredFields(map[string]any{
 		"ANALYTICS_HIGHPRICE": a.HighPrice,
 		"ANALYTICS_LOWPRICE":  a.LowPrice,
-	}, "")
+	}, prefix)
 }
 
 func (a *Analytics) MinDate() time.Time {

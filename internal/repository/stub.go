@@ -17,7 +17,7 @@ func (*Stub) IsFinal() bool {
 	return true
 }
 
-func (*Stub) Get(_ context.Context, startDate time.Time) ([]decimal.Decimal, error) {
+func (*Stub) Get(_ context.Context, startDate time.Time, opts ...Option) ([]decimal.Decimal, error) {
 	return []decimal.Decimal{
 		decimal.NewFromFloat(0.15),
 		decimal.NewFromFloat(0.13),

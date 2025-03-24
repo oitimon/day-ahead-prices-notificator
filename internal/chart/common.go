@@ -21,10 +21,10 @@ const (
 )
 
 type CommonChart struct {
-	cfg *config.Analytics
+	cfg *config.Ui
 }
 
-func NewChart(cfg *config.Analytics) Chart {
+func NewChart(cfg *config.Ui) Chart {
 	return &CommonChart{
 		cfg: cfg,
 	}
@@ -71,7 +71,7 @@ func (c *CommonChart) generateYAxis(prices []decimal.Decimal) []opts.BarData {
 		yAxis[i] = opts.BarData{
 			Value: price,
 			ItemStyle: &opts.ItemStyle{
-				Color: c.getColor(price, c.cfg),
+				Color: c.getColor(price, &c.cfg.Analytics),
 			},
 		}
 	}
@@ -80,7 +80,7 @@ func (c *CommonChart) generateYAxis(prices []decimal.Decimal) []opts.BarData {
 
 func (c *CommonChart) TextChart(prices []decimal.Decimal, day time.Time) (string, error) {
 	log.Printf("Generating Text message for: %s\n", day.Format("2006-01-02"))
-	return c.drawLinesBarChartHtml(c.cfg, prices, 30, true)
+	return c.drawLinesBarChartHtml(&c.cfg.Analytics, prices, 30, true)
 }
 
 func (c *CommonChart) getColor(value decimal.Decimal, cfg *config.Analytics) string {

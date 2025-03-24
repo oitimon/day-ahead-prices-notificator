@@ -31,13 +31,13 @@ func (e *Energyzero) IsFinal() bool {
 	return true
 }
 
-func (e *Energyzero) Get(ctx context.Context, startDate time.Time) (prices []decimal.Decimal, err error) {
+func (e *Energyzero) Get(ctx context.Context, startDate time.Time, opts ...Option) (prices []decimal.Decimal, err error) {
+	options := newOptions(opts...)
 	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, startDate.Location())
-	incBtw := strconv.FormatBool(false)
 	url := fmt.Sprintf(
 		"%s/energyprices?fromDate=%s&tillDate=%s&interval=4&usageType=1&inclBtw=%s", e.cfg.API.Endpoint,
 		startDate.In(time.UTC).Format("2006-01-02T15:04:05.000Z"),
-		endDate.In(time.UTC).Format("2006-01-02T15:04:05.000Z"), incBtw,
+		endDate.In(time.UTC).Format("2006-01-02T15:04:05.000Z"), strconv.FormatBool(options.withVat),
 	)
 
 	data := models.PriceData{}

@@ -7,11 +7,11 @@ import (
 )
 
 type Data interface {
-	Get(ctx context.Context, startDate time.Time) ([]decimal.Decimal, error)
+	Get(ctx context.Context, startDate time.Time, opts ...Option) ([]decimal.Decimal, error)
 	IsFinal() bool
 }
 
 type Bytes interface {
-	Get(ctx context.Context, startDate time.Time) ([]byte, error)
+	Get(ctx context.Context, startDate time.Time, opts ...Option) ([]byte, error)
 	IsFinal() bool
 }
