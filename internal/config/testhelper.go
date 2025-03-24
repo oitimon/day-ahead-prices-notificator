@@ -4,9 +4,12 @@ import "github.com/shopspring/decimal"
 
 func GenerateTestConfig() *App {
 	return &App{
-		Analytics: Analytics{
-			HighPrice: decimal.NewFromFloat(0.2),
-			LowPrice:  decimal.NewFromFloat(0.1),
+		Ui: Ui{
+			IncludingVat: false,
+			Analytics: Analytics{
+				HighPrice: decimal.NewFromFloat(0.2),
+				LowPrice:  decimal.NewFromFloat(0.1),
+			},
 		},
 		DataRepository: Repository{
 			Driver: RepositoryDriverGroupCache,

@@ -35,13 +35,13 @@ func NewDayAhead(ctx context.Context, cfg *config.App) (DayAhead, error) {
 	}
 
 	// Prepare Chart.
-	s.chart = chart.NewChart(&cfg.Analytics)
+	s.chart = chart.NewChart(&cfg.Ui)
 
 	return s, nil
 }
 
 func (s *Service) GetHtmlChart(ctx context.Context, day time.Time) (html []byte, err error) {
-	prices, err := s.dataRepository.Get(ctx, day)
+	prices, err := s.dataRepository.Get(ctx, day, repository.WithVat(s.cfg.Ui.IncludingVat))
 	if err != nil {
 		return
 	}
@@ -49,11 +49,11 @@ func (s *Service) GetHtmlChart(ctx context.Context, day time.Time) (html []byte,
 }
 
 func (s *Service) GetPrices(ctx context.Context, startDate time.Time) ([]decimal.Decimal, error) {
-	return s.dataRepository.Get(ctx, startDate)
+	return s.dataRepository.Get(ctx, startDate, repository.WithVat(s.cfg.Ui.IncludingVat))
 }
 
 func (s *Service) ValidateDay(day time.Time) error {
-	if day.Before(s.cfg.Analytics.MinDate()) {
+	if day.Before(s.cfg.Ui.Analytics.MinDate()) {
 		return errors.New("day is too old")
 	}
 

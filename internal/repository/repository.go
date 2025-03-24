@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+type Options struct {
+	withVat bool
+}
+
+type Option func(*Options)
+
 func NewDataRepository(ctx context.Context, cfg *config.Repository) (dr Data, err error) {
 	drivers := strings.Split(cfg.Driver, ",")
 
@@ -55,6 +61,20 @@ func NewBytesRepository(ctx context.Context, cfg *config.Repository) (br Bytes, 
 		br = NewGroupCache(&cfg.GroupCache, nil).Bytes()
 	default:
 		err = errors.New("unknown bytes repository driver")
+	}
+	return
+}
+
+func WithVat(includingVat bool) Option {
+	return func(o *Options) {
+		o.withVat = includingVat
+	}
+}
+
+func newOptions(opts ...Option) (o *Options) {
+	o = &Options{}
+	for _, opt := range opts {
+		opt(o)
 	}
 	return
 }

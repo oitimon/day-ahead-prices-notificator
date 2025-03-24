@@ -14,6 +14,7 @@ import (
 
 const measurementPrices = "prices"
 const fieldNamePrice = "price"
+const fieldNamePriceWVat = "price_w_vat"
 const tagCurrency = "currency"
 const currencyValue = "EUR"
 
@@ -64,7 +65,8 @@ func (*Influx) IsFinal() bool {
 	return false
 }
 
-func (inf *Influx) Get(ctx context.Context, startDate time.Time) (prices []decimal.Decimal, err error) {
+func (inf *Influx) Get(ctx context.Context, startDate time.Time, opts ...Option) (prices []decimal.Decimal, err error) {
+	options := newOptions(opts...)
 	// Read from DB first.
 	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, startDate.Location())
 	query := fmt.Sprintf(`
@@ -76,7 +78,7 @@ func (inf *Influx) Get(ctx context.Context, startDate time.Time) (prices []decim
 		startDate.Format(time.RFC3339),
 		endDate.Format(time.RFC3339),
 		measurementPrices,
-		fieldNamePrice,
+		inf.fieldName(options),
 	)
 	log.Printf("Query to Influx: %s\n", query)
 	// We create a sprintf-query as QueryWithParams is not working properly in the Go client.
@@ -103,12 +105,13 @@ func (inf *Influx) Get(ctx context.Context, startDate time.Time) (prices []decim
 	}
 
 	if count <= 0 {
-		prices, err = inf.loadData(ctx, startDate)
+		prices, err = inf.loadData(ctx, startDate, opts...)
 	}
 	return
 }
 
-func (inf *Influx) loadData(ctx context.Context, startDate time.Time) (prices []decimal.Decimal, err error) {
+func (inf *Influx) loadData(ctx context.Context, startDate time.Time, opts ...Option) (prices []decimal.Decimal, err error) {
+	options := newOptions(opts...)
 	if inf.deleteBeforeWrite {
 		log.Printf("WARNING: Deleting data from InfluxDB for %s\n", startDate.Format("2006-01-02"))
 		// Clear existing data (all fields).
@@ -131,7 +134,7 @@ func (inf *Influx) loadData(ctx context.Context, startDate time.Time) (prices []
 		err = errors.New("previous repository not set for InfluxDB")
 		return
 	}
-	prices, err = inf.prev.Get(ctx, startDate)
+	prices, err = inf.prev.Get(ctx, startDate, opts...)
 	if err != nil {
 		err = errors.New("error fetching prices: " + err.Error())
 		return
@@ -141,9 +144,9 @@ func (inf *Influx) loadData(ctx context.Context, startDate time.Time) (prices []
 	for i := 0; i < len(prices); i++ {
 		p := influxdb2.NewPoint(
 			measurementPrices,
-			map[string]string{tagCurrency: currencyValue},                      // tags
-			map[string]interface{}{fieldNamePrice: prices[i].InexactFloat64()}, // fields
-			startDate.Add(time.Hour*time.Duration(i)),                          // timestamp
+			map[string]string{tagCurrency: currencyValue},                              // tags
+			map[string]interface{}{inf.fieldName(options): prices[i].InexactFloat64()}, // fields
+			startDate.Add(time.Hour*time.Duration(i)),                                  // timestamp
 		)
 
 		inf.writeAPI.WritePoint(p)
@@ -151,4 +154,11 @@ func (inf *Influx) loadData(ctx context.Context, startDate time.Time) (prices []
 	inf.writeAPI.Flush()
 	log.Printf("Writing %d prices to InfluxDB\n", len(prices))
 	return
+}
+
+func (inf *Influx) fieldName(options *Options) string {
+	if options.withVat {
+		return fieldNamePriceWVat
+	}
+	return fieldNamePrice
 }

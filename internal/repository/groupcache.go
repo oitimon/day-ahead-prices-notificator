@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -27,6 +28,7 @@ type GroupCache struct {
 }
 
 type groupCacheData struct {
+	parent *GroupCache
 	cache  *groupcache.Group
 	parser fastjson.Parser
 	prev   Data
@@ -43,12 +45,13 @@ func NewGroupCache(cfg *config.GroupCache, prev Data) *GroupCache {
 		}
 
 		gc.data = groupCacheData{
+			parent: gc,
 			prev:   prev,
 			parser: fastjson.Parser{},
 			cache: groupcache.NewGroup("data", 64<<20, groupcache.GetterFunc(
 				func(ctx groupcache.Context, key string, dest groupcache.Sink) (err error) {
 					log.Println("Groupcache, fetching from external source:", key)
-					startDate, err := time.Parse(time.RFC3339, key)
+					startDate, opts, err := gc.deserializeKey(key)
 					if err != nil {
 						err = errors.New("error parsing date: " + err.Error())
 						return
@@ -57,7 +60,7 @@ func NewGroupCache(cfg *config.GroupCache, prev Data) *GroupCache {
 						err = errors.New("previous repository not set for Groupcache")
 						return
 					}
-					prices, err := gc.data.prev.Get(ctx, startDate)
+					prices, err := gc.data.prev.Get(ctx, startDate, opts...)
 					if err != nil {
 						err = errors.New("error fetching prices: " + err.Error())
 						return
@@ -105,13 +108,38 @@ func (gc *GroupCache) Bytes() Bytes {
 	return &gc.bytes
 }
 
+func (gc *GroupCache) serializeKey(startDate time.Time, options *Options) string {
+	key := startDate.Format(time.RFC3339)
+	if options.withVat {
+		key += "_wVat"
+	}
+	return key
+}
+
+func (gc *GroupCache) deserializeKey(key string) (startDate time.Time, opts []Option, err error) {
+	parts := strings.Split(key, "_")
+	if len(parts) < 1 {
+		err = fmt.Errorf("invalid key format: '%s'", key)
+		return
+	}
+	if startDate, err = time.Parse(time.RFC3339, parts[0]); err != nil {
+		err = fmt.Errorf("error parsing date from key '%s': %v", key, err)
+		return
+	}
+	if len(parts) > 1 && parts[1] == "wVat" {
+		opts = append(opts, WithVat(true))
+	}
+	return
+}
+
 func (*groupCacheData) IsFinal() bool {
 	return false
 }
 
-func (gc *groupCacheData) Get(ctx context.Context, startDate time.Time) (prices []decimal.Decimal, err error) {
+func (gc *groupCacheData) Get(ctx context.Context, startDate time.Time, opts ...Option) (prices []decimal.Decimal, err error) {
+	options := newOptions(opts...)
 	var data []byte
-	if err = gc.cache.Get(ctx, startDate.Format(time.RFC3339), groupcache.AllocatingByteSliceSink(&data)); err != nil {
+	if err = gc.cache.Get(ctx, gc.parent.serializeKey(startDate, options), groupcache.AllocatingByteSliceSink(&data)); err != nil {
 		err = errors.New("error getting data from groupcache: " + err.Error())
 		return
 	}
@@ -141,7 +169,7 @@ func (gc *groupCacheData) Get(ctx context.Context, startDate time.Time) (prices 
 	return
 }
 
-func (gc *groupCacheBytes) Get(ctx context.Context, startDate time.Time) ([]byte, error) {
+func (gc *groupCacheBytes) Get(ctx context.Context, startDate time.Time, opts ...Option) ([]byte, error) {
 	// Implement the logic to get data from groupcache
 	return nil, errors.New("not implemented")
 }
