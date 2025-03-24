@@ -95,7 +95,7 @@ func router(cfg *config.App, da dayahead.DayAhead) *chi.Mux {
 	r.Get("/", controller.IndexHandler)
 	r.Get("/api/v1/healthcheck", controller.HealthCheckHandler)
 	r.With(appMiddleware.DateMiddleware).With(appMiddleware.VatMiddleware).
-		Get("/day-prices/{year}-{month}-{day}", controller.DayPricesHandler)
+		Get("/day-prices/{day}", controller.DayPricesHandler)
 
 	return r
 }

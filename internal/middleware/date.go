@@ -5,31 +5,32 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
 )
 
 // Middleware to add date values to context
 func DateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		year, err := strconv.Atoi(chi.URLParam(r, "year"))
-		if err != nil {
-			http.Error(w, "Invalid year value", http.StatusBadRequest)
-			return
+		cfg := r.Context().Value("config").(*config.App)
+		var date time.Time
+		var err error
+		switch strings.ToLower(chi.URLParam(r, "day")) {
+		case "today":
+			date = time.Now()
+		case "yesterday":
+			date = time.Now().AddDate(0, 0, -1)
+		case "tomorrow":
+			date = time.Now().AddDate(0, 0, 1)
+		default:
+			if date, err = time.Parse("2006-01-02", chi.URLParam(r, "day")); err != nil {
+				http.Error(w, "Invalid date format: "+err.Error(), http.StatusBadRequest)
+				return
+			}
 		}
+		date = date.In(cfg.Location())
+		date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, cfg.Location())
 
-		month, err := strconv.Atoi(chi.URLParam(r, "month"))
-		if err != nil {
-			http.Error(w, "Invalid month value", http.StatusBadRequest)
-			return
-		}
-
-		day, err := strconv.Atoi(chi.URLParam(r, "day"))
-		if err != nil {
-			http.Error(w, "Invalid day value", http.StatusBadRequest)
-			return
-		}
-
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "day", time.Date(year, time.Month(month), day, 0, 0, 0, 0, r.Context().Value("config").(*config.App).Location()))))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "day", date)))
 	})
 }
