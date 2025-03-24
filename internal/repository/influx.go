@@ -66,7 +66,7 @@ func (*Influx) IsFinal() bool {
 }
 
 func (inf *Influx) Get(ctx context.Context, startDate time.Time, opts ...Option) (prices []decimal.Decimal, err error) {
-	options := newOptions(opts...)
+	options := NewOptions(opts...)
 	// Read from DB first.
 	endDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 23, 59, 59, 0, startDate.Location())
 	query := fmt.Sprintf(`
@@ -111,7 +111,7 @@ func (inf *Influx) Get(ctx context.Context, startDate time.Time, opts ...Option)
 }
 
 func (inf *Influx) loadData(ctx context.Context, startDate time.Time, opts ...Option) (prices []decimal.Decimal, err error) {
-	options := newOptions(opts...)
+	options := NewOptions(opts...)
 	if inf.deleteBeforeWrite {
 		log.Printf("WARNING: Deleting data from InfluxDB for %s\n", startDate.Format("2006-01-02"))
 		// Clear existing data (all fields).
@@ -157,7 +157,7 @@ func (inf *Influx) loadData(ctx context.Context, startDate time.Time, opts ...Op
 }
 
 func (inf *Influx) fieldName(options *Options) string {
-	if options.withVat {
+	if options.WithVat {
 		return fieldNamePriceWVat
 	}
 	return fieldNamePrice

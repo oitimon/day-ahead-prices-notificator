@@ -128,8 +128,8 @@ func (a *Analytics) selfCheck(prefix string) error {
 	}, prefix)
 }
 
-func (a *Analytics) MinDate() time.Time {
-	return time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+func (a *Analytics) MinDate(localtion *time.Location) time.Time {
+	return time.Date(2020, 1, 1, 0, 0, 0, 0, localtion)
 }
 
 func (s *Server) selfCheck() error {

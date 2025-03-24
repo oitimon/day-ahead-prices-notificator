@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/oitimon/day-ahead-prices-notificator/internal/dayahead"
+	"github.com/oitimon/day-ahead-prices-notificator/internal/repository"
 	"html/template"
 	"log"
 	"net/http"
@@ -20,7 +21,7 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate the chart as HTML
-	html, err := da.GetHtmlChart(ctx, day)
+	html, err := da.GetHtmlChart(ctx, day, repository.WithVat(ctx.Value("vat").(bool)))
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "server chart error", http.StatusInternalServerError)

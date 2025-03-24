@@ -40,12 +40,9 @@ func (c *CommonChart) HtmlChart(prices []decimal.Decimal, day time.Time) (html [
 	bar.SetXAxis(xAxis).
 		AddSeries("", yAxis, charts.WithAnimationOpts(opts.Animation{Animation: opts.Bool(true)})).
 		SetGlobalOptions(
-			charts.WithTitleOpts(opts.Title{Title: fmt.Sprintf("EPEX NL %s", day.Format("2006-01-02")), Left: "36%"}),
+			charts.WithTitleOpts(opts.Title{Title: fmt.Sprintf("EPEX NL %s", day.Format("2006-01-02")), Left: "39%"}),
 			charts.WithXAxisOpts(opts.XAxis{AxisLabel: &opts.AxisLabel{Rotate: 90, Formatter: opts.FuncOpts(`function (value) { return value.padStart(2, '0')+':00'; }`)}}),
 			charts.WithYAxisOpts(opts.YAxis{AxisLabel: &opts.AxisLabel{Formatter: opts.FuncOpts(`function (value) { return value.toFixed(2); }`)}}),
-			charts.WithTooltipOpts(opts.Tooltip{Formatter: opts.FuncOpts(`function (params) {
-				return '<div align="center">' + params.name.padStart(2, '0')+':00' + ' - ' + (Number(params.name)+1).toString().padStart(2, '0')+':00' + '<br/><b>' + params.value + ' €' + '</b></span>';
-			}`)}),
 		).
 		SetSeriesOptions(charts.WithLabelOpts(opts.Label{Show: opts.Bool(true), Position: "inside"}))
 
@@ -53,7 +50,7 @@ func (c *CommonChart) HtmlChart(prices []decimal.Decimal, day time.Time) (html [
 	if err = bar.Render(&buf); err != nil {
 		return nil, fmt.Errorf("bar.Render(w): %w", err)
 	}
-	html = bytes.Replace(buf.Bytes(), []byte("Awesome go-echarts"), []byte(fmt.Sprintf(htmlPageTitle, c.cfg.Version)), -1)
+	html = bytes.Replace(buf.Bytes(), []byte("Awesome go-echarts"), []byte(fmt.Sprintf(htmlPageTitle, c.cfg.Version)), 1)
 	return
 }
 
@@ -69,9 +66,14 @@ func (c *CommonChart) generateYAxis(prices []decimal.Decimal) []opts.BarData {
 	yAxis := make([]opts.BarData, len(prices))
 	for i, price := range prices {
 		yAxis[i] = opts.BarData{
-			Value: price,
+			Value: price.StringFixed(2),
 			ItemStyle: &opts.ItemStyle{
 				Color: c.getColor(price, &c.cfg.Analytics),
+			},
+			Tooltip: &opts.Tooltip{
+				Formatter: opts.FuncOpts(fmt.Sprintf(`function (params) {
+				return '<div align="center">' + params.name.padStart(2, '0')+':00' + ' - ' + (Number(params.name)+1).toString().padStart(2, '0')+':00' + '<br/><b>' + %s + ' €' + '</b></span>';
+			}`, price.StringFixed(4))),
 			},
 		}
 	}

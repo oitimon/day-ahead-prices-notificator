@@ -9,7 +9,7 @@ import (
 )
 
 type Options struct {
-	withVat bool
+	WithVat bool
 }
 
 type Option func(*Options)
@@ -67,11 +67,11 @@ func NewBytesRepository(ctx context.Context, cfg *config.Repository) (br Bytes, 
 
 func WithVat(includingVat bool) Option {
 	return func(o *Options) {
-		o.withVat = includingVat
+		o.WithVat = includingVat
 	}
 }
 
-func newOptions(opts ...Option) (o *Options) {
+func NewOptions(opts ...Option) (o *Options) {
 	o = &Options{}
 	for _, opt := range opts {
 		opt(o)
