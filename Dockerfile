@@ -25,6 +25,7 @@ USER nonroot
 
 COPY --from=builder  /app/da-price-notificator .
 COPY --from=builder  /app/VERSION .
+COPY --from=builder  /app/static/ static/
 
 # Expose necessary ports
 EXPOSE 8080
