@@ -86,9 +86,10 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo docker stop day-ahead-prices-notificator
-            sudo docker rm day-ahead-prices-notificator
+            sudo docker stop day-ahead-prices-notificator || true
+            sudo docker rm day-ahead-prices-notificator || true
             sudo aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 202533543271.dkr.ecr.eu-north-1.amazonaws.com
+            sudo aws ecr describe-repositories --region eu-north-1 --repository-names day-ahead-prices-notificator || echo "Repository does not exist"
             sudo docker pull 202533543271.dkr.ecr.eu-north-1.amazonaws.com/day-ahead-prices-notificator:latest
             sudo docker run -d -p 80:80 --name day-ahead-prices-notificator --env-file .env 202533543271.dkr.ecr.eu-north-1.amazonaws.com/day-ahead-prices-notificator:latest
             sudo docker image prune -f
