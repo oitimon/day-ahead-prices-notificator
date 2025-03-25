@@ -7,9 +7,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/oitimon/day-ahead-prices-notificator/internal/controller"
-	middleware3 "github.com/oitimon/day-ahead-prices-notificator/internal/middleware"
+	appMiddleware "github.com/oitimon/day-ahead-prices-notificator/internal/middleware"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
-	dayahead2 "github.com/oitimon/day-ahead-prices-notificator/pkg/dayahead"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/dayahead"
 	"log"
 	"net/http"
 	"os"
@@ -34,7 +34,7 @@ func main() {
 	cfg.Ui.Version = string(data)
 
 	// Prepare service(s).
-	da, err := dayahead2.NewDayAhead(ctx, cfg)
+	da, err := dayahead.NewDayAhead(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Error creating DayAhead service: %v", err)
 	}
@@ -82,19 +82,19 @@ func loadConfig() *config.App {
 	return cfg
 }
 
-func router(cfg *config.App, da dayahead2.DayAhead) *chi.Mux {
+func router(cfg *config.App, da dayahead.DayAhead) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(10 * time.Second))
 
-	r.Use(middleware3.ConfigMiddleware(cfg))
-	r.Use(middleware3.DayAheadMiddleware(da))
+	r.Use(appMiddleware.ConfigMiddleware(cfg))
+	r.Use(appMiddleware.DayAheadMiddleware(da))
 
 	r.Get("/", controller.IndexHandler)
 	r.Get("/api/v1/healthcheck", controller.HealthCheckHandler)
-	r.With(middleware3.DateMiddleware).With(middleware3.VatMiddleware).
+	r.With(appMiddleware.DateMiddleware).With(appMiddleware.VatMiddleware).
 		Get("/day-prices/{day}", controller.DayPricesHandler)
 
 	return r
