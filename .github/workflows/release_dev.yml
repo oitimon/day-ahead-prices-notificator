@@ -86,8 +86,6 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo docker stop day-ahead-prices-notificator || true
-            sudo docker rm day-ahead-prices-notificator || true
             sudo aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 202533543271.dkr.ecr.eu-north-1.amazonaws.com
             sudo docker pull 202533543271.dkr.ecr.eu-north-1.amazonaws.com/day-ahead-prices-notificator:latest
             sudo docker stop day-ahead-prices-notificator || true
