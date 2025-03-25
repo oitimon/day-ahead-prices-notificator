@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
-	"github.com/oitimon/day-ahead-prices-notificator/pkg/models"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/repository/energyzero"
 	"github.com/shopspring/decimal"
 	"io"
 	"log"
@@ -40,7 +40,7 @@ func (e *Energyzero) Get(ctx context.Context, startDate time.Time, opts ...Optio
 		endDate.In(time.UTC).Format("2006-01-02T15:04:05.000Z"), strconv.FormatBool(options.WithVat),
 	)
 
-	data := models.PriceData{}
+	data := energyzero.PriceData{}
 	if err = e.fetchByUrl(ctx, url, &data); err != nil {
 		return
 	}
@@ -53,7 +53,7 @@ func (e *Energyzero) Get(ctx context.Context, startDate time.Time, opts ...Optio
 	return
 }
 
-func (e *Energyzero) fetchByUrl(ctx context.Context, url string, data *models.PriceData) (err error) {
+func (e *Energyzero) fetchByUrl(ctx context.Context, url string, data *energyzero.PriceData) (err error) {
 	log.Printf("Fetching prices from %s\n", url)
 
 	ctx, cancel := context.WithTimeout(ctx, fetchHttpTimeout)

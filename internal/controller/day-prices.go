@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"github.com/oitimon/day-ahead-prices-notificator/internal/dayahead"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/repository"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/dayahead"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/repository"
 	"html/template"
 	"log"
 	"net/http"

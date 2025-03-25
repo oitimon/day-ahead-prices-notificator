@@ -10,6 +10,8 @@ import (
 )
 
 func TestConfigSelfCheck(t *testing.T) {
+	t.Parallel()
+
 	cfg := GenerateTestConfig()
 
 	// Perform self-check
@@ -20,6 +22,8 @@ func TestConfigSelfCheck(t *testing.T) {
 }
 
 func TestConfigExample(t *testing.T) {
+	t.Parallel()
+
 	cfg := &App{}
 	err := godotenv.Load("../../.env.example")
 	if err != nil {
@@ -34,6 +38,8 @@ func TestConfigExample(t *testing.T) {
 }
 
 func TestLocation(t *testing.T) {
+	t.Parallel()
+
 	cfg := GenerateTestConfig()
 
 	expected, _ := time.LoadLocation("Europe/Amsterdam")
@@ -41,6 +47,8 @@ func TestLocation(t *testing.T) {
 }
 
 func TestTomorrowHourMin(t *testing.T) {
+	t.Parallel()
+
 	cfg := GenerateTestConfig()
 
 	assert.Equal(t, 15, cfg.TomorrowHourMin())

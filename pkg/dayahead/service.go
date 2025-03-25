@@ -5,18 +5,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/chart"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/repository"
+	chart2 "github.com/oitimon/day-ahead-prices-notificator/pkg/chart"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
+	repository2 "github.com/oitimon/day-ahead-prices-notificator/pkg/repository"
 	"github.com/shopspring/decimal"
 	"time"
 )
 
 type Service struct {
 	cfg             *config.App
-	dataRepository  repository.Data
-	chartRepository repository.Bytes
-	chart           chart.Chart
+	dataRepository  repository2.Data
+	chartRepository repository2.Bytes
+	chart           chart2.Chart
 }
 
 func NewDayAhead(ctx context.Context, cfg *config.App) (DayAhead, error) {
@@ -26,23 +26,23 @@ func NewDayAhead(ctx context.Context, cfg *config.App) (DayAhead, error) {
 	var err error
 
 	// Prepare Loader and Repositories.
-	s.dataRepository, err = repository.NewDataRepository(ctx, &cfg.DataRepository)
+	s.dataRepository, err = repository2.NewDataRepository(ctx, &cfg.DataRepository)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating data repository: %v", err)
 	}
-	s.chartRepository, err = repository.NewBytesRepository(ctx, &cfg.ChartRepository)
+	s.chartRepository, err = repository2.NewBytesRepository(ctx, &cfg.ChartRepository)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating bytes repository: %v", err)
 	}
 
 	// Prepare Chart.
-	s.chart = chart.NewChart(&cfg.Ui)
+	s.chart = chart2.NewChart(&cfg.Ui)
 
 	return s, nil
 }
 
-func (s *Service) GetHtmlChart(ctx context.Context, day time.Time, opts ...repository.Option) (html []byte, err error) {
-	options := repository.NewOptions(opts...)
+func (s *Service) GetHtmlChart(ctx context.Context, day time.Time, opts ...repository2.Option) (html []byte, err error) {
+	options := repository2.NewOptions(opts...)
 	prices, err := s.dataRepository.Get(ctx, day, opts...)
 	if err != nil {
 		return
@@ -69,7 +69,7 @@ func (s *Service) GetHtmlChart(ctx context.Context, day time.Time, opts ...repos
 	return
 }
 
-func (s *Service) GetPrices(ctx context.Context, startDate time.Time, opts ...repository.Option) ([]decimal.Decimal, error) {
+func (s *Service) GetPrices(ctx context.Context, startDate time.Time, opts ...repository2.Option) ([]decimal.Decimal, error) {
 	return s.dataRepository.Get(ctx, startDate, opts...)
 }
 

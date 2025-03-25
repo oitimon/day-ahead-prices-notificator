@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/groupcache"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"github.com/shopspring/decimal"
 	"github.com/valyala/fastjson"
 	"log"

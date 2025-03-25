@@ -9,6 +9,8 @@ import (
 )
 
 func TestHealthCheckHandler(t *testing.T) {
+	t.Parallel()
+
 	req, err := http.NewRequest("GET", "/health", nil)
 	require.NoError(t, err)
 

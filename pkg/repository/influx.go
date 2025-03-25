@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"github.com/shopspring/decimal"
 	"log"
 	"time"

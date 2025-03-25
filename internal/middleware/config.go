@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"net/http"
 )
 
