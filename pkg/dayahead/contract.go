@@ -2,7 +2,7 @@ package dayahead
 
 import (
 	"context"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/repository"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/repository"
 	"github.com/shopspring/decimal"
 	"time"
 )

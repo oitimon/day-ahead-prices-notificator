@@ -5,9 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/chart"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/repository"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/chart"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/repository"
 	"github.com/shopspring/decimal"
 	"time"
 )

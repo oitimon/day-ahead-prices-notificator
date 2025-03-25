@@ -9,6 +9,8 @@ import (
 )
 
 func TestIndexHandler(t *testing.T) {
+	t.Parallel()
+
 	req, err := http.NewRequest("GET", "/", nil)
 	require.NoError(t, err)
 

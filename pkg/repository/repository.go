@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"strings"
 )
 

@@ -6,7 +6,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/guptarohit/asciigraph"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"github.com/shopspring/decimal"
 	"log"
 	"math"

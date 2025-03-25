@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"testing"
 	"time"
 
@@ -14,6 +14,8 @@ import (
 )
 
 func TestFetchPrices(t *testing.T) {
+	t.Parallel()
+
 	server := generateFakeServer()
 	defer server.Close()
 	cfg := &config.Energyzero{
@@ -30,6 +32,8 @@ func TestFetchPrices(t *testing.T) {
 }
 
 func TestFetchPrices_Error(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +54,8 @@ func TestFetchPrices_Error(t *testing.T) {
 }
 
 func TestIsFinal(t *testing.T) {
+	t.Parallel()
+
 	e := &Energyzero{}
 	assert.True(t, e.IsFinal())
 }

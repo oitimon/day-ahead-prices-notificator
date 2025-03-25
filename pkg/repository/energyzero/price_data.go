@@ -1,4 +1,4 @@
-package models
+package energyzero
 
 import (
 	"github.com/shopspring/decimal"

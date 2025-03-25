@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
-	"github.com/oitimon/day-ahead-prices-notificator/internal/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"net/http"
 	"strings"
 	"time"

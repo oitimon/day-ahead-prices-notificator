@@ -1,4 +1,4 @@
-package models
+package energyzero
 
 import (
 	"github.com/shopspring/decimal"
@@ -7,6 +7,8 @@ import (
 )
 
 func TestPricesFloat64(t *testing.T) {
+	t.Parallel()
+
 	// Initialize a PriceData instance with sample data
 	priceData := &PriceData{
 		Prices: []PriceDataEntry{
