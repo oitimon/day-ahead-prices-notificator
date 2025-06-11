@@ -17,6 +17,7 @@ import (
 
 const (
 	barChar       = "█"
+	barEmptyChar  = " "
 	htmlPageTitle = "EPEX NL %s"
 )
 
@@ -54,6 +55,11 @@ func (c *CommonChart) HtmlChart(prices []decimal.Decimal, day time.Time) (html [
 	return
 }
 
+func (c *CommonChart) TextChart(prices []decimal.Decimal, day time.Time) (string, error) {
+	log.Printf("Generating Text message for: %s\n", day.Format("2006-01-02"))
+	return c.drawLinesBarChartMarkup(&c.cfg.Analytics, prices, c.cfg.TextChart.Width, true)
+}
+
 func (c *CommonChart) generateXAxis(prices []decimal.Decimal) []string {
 	xAxis := make([]string, len(prices))
 	for i := 0; i < len(prices); i++ {
@@ -80,11 +86,6 @@ func (c *CommonChart) generateYAxis(prices []decimal.Decimal) []opts.BarData {
 	return yAxis
 }
 
-func (c *CommonChart) TextChart(prices []decimal.Decimal, day time.Time) (string, error) {
-	log.Printf("Generating Text message for: %s\n", day.Format("2006-01-02"))
-	return c.drawLinesBarChartHtml(&c.cfg.Analytics, prices, 30, true)
-}
-
 func (c *CommonChart) getColor(value decimal.Decimal, cfg *config.Analytics) string {
 	if value.LessThanOrEqual(cfg.LowPrice) {
 		return "green"
@@ -95,14 +96,18 @@ func (c *CommonChart) getColor(value decimal.Decimal, cfg *config.Analytics) str
 	}
 }
 
-func (c *CommonChart) drawLinesBarChartHtml(cfg *config.Analytics, prices []decimal.Decimal, width int, markDown bool) (message string, err error) {
+func (c *CommonChart) drawLinesBarChartMarkup(cfg *config.Analytics, prices []decimal.Decimal, width int, markDown bool) (message string, err error) {
 	maxVal, minVal := c.getMaxMinPrices(prices)
 	scale := c.calculateScale(maxVal, minVal, width)
 
 	for i, price := range prices {
-		bar := strings.Repeat(barChar, int((price.InexactFloat64()-minVal.InexactFloat64()+scale)/scale))
+		bar := ""
+		if !price.IsNegative() && minVal.IsNegative() {
+			bar = strings.Repeat(barEmptyChar, int((-minVal.InexactFloat64())/scale))
+		}
+		bar += strings.Repeat(barChar, int(math.Abs(price.InexactFloat64())/scale))
 		marker, markerFont, priceString := c.getMarkerAndPriceString(price, cfg, markDown)
-		message += fmt.Sprintf("%s%02d:00%s %s %s%s%s\n", markerFont, i, markerFont, bar, marker, priceString, marker)
+		message += fmt.Sprintf("%s%02d:00 %s %s%s%s%s\n", markerFont, i, bar, markerFont, marker, priceString, marker)
 	}
 
 	return
@@ -121,15 +126,19 @@ func (c *CommonChart) getMaxMinPrices(prices []decimal.Decimal) (maxVal, minVal 
 	return
 }
 
-func (c *CommonChart) calculateScale(maxVal, minVal decimal.Decimal, width int) float64 {
-	scale := float64(0)
-	if maxVal.InexactFloat64() != 0 {
+func (c *CommonChart) calculateScale(maxVal, minVal decimal.Decimal, width int) (scale float64) {
+	if maxVal.IsZero() {
+		maxVal = decimal.NewFromFloat(0.01)
+	}
+	if minVal.IsNegative() && !maxVal.IsNegative() {
 		scale = math.Abs(maxVal.InexactFloat64()-minVal.InexactFloat64()) / float64(width)
+	} else {
+		scale = maxVal.InexactFloat64() / float64(width)
 	}
 	if scale == 0 {
 		scale = 1
 	}
-	return scale
+	return
 }
 
 func (c *CommonChart) getMarkerAndPriceString(price decimal.Decimal, cfg *config.Analytics, markDown bool) (marker, markerFont, priceString string) {
@@ -140,7 +149,7 @@ func (c *CommonChart) getMarkerAndPriceString(price decimal.Decimal, cfg *config
 		} else if price.GreaterThan(cfg.HighPrice) {
 			marker = "*"
 		}
-		priceString = strings.Replace(priceString, ".", "\\.", -1)
+		//priceString = strings.Replace(priceString, ".", "\\.", -1)
 		markerFont = "`"
 	}
 	return

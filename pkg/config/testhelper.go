@@ -10,6 +10,9 @@ func GenerateTestConfig() *App {
 				HighPrice: decimal.NewFromFloat(0.2),
 				LowPrice:  decimal.NewFromFloat(0.1),
 			},
+			TextChart: TextChart{
+				Width: 50,
+			},
 		},
 		DataRepository: Repository{
 			Driver: RepositoryDriverGroupCache,

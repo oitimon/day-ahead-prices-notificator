@@ -17,6 +17,7 @@ const RepositoryDriverInflux = "influx"
 const RepositoryDriverEnergyzero = "energyzero"
 const RepositoryDriverStub = "stub"
 const MessengerDriverTelegram = "telegram"
+const MessengerDriverScreener = "screener"
 
 type Api struct {
 	Endpoint string
@@ -65,8 +66,13 @@ type Analytics struct {
 	LowPrice  decimal.Decimal
 }
 
+type TextChart struct {
+	Width int
+}
+
 type Ui struct {
 	Analytics    Analytics
+	TextChart    TextChart
 	Version      string
 	IncludingVat bool
 }
@@ -102,7 +108,7 @@ func (cfg *App) TomorrowHourMin() int {
 
 func (cfg *App) SelfCheck() error {
 	for _, check := range []error{
-		cfg.Ui.selfCheck(),
+		cfg.Ui.selfCheck("UI_"),
 		cfg.DataRepository.selfCheck("DATA"),
 		cfg.ChartRepository.selfCheck("CHART"),
 		cfg.Server.selfCheck(),
@@ -117,8 +123,17 @@ func (cfg *App) SelfCheck() error {
 	return nil
 }
 
-func (u *Ui) selfCheck() error {
-	return u.Analytics.selfCheck("UI_")
+func (u *Ui) selfCheck(prefix string) error {
+	for _, check := range []error{
+		u.Analytics.selfCheck(prefix),
+		u.TextChart.selfCheck(prefix),
+	} {
+		if check != nil {
+			return check
+		}
+	}
+
+	return nil
 }
 
 func (a *Analytics) selfCheck(prefix string) error {
@@ -130,6 +145,12 @@ func (a *Analytics) selfCheck(prefix string) error {
 
 func (a *Analytics) MinDate(localtion *time.Location) time.Time {
 	return time.Date(2020, 1, 1, 0, 0, 0, 0, localtion)
+}
+
+func (t *TextChart) selfCheck(prefix string) error {
+	return checkRequiredFields(map[string]any{
+		"TEXTCHART_WIDTH": t.Width,
+	}, prefix)
 }
 
 func (s *Server) selfCheck() error {
@@ -189,18 +210,22 @@ func (r *Repository) selfCheck(prefix string) error {
 }
 
 func (m *Messenger) selfCheck() error {
-	if m.Driver == MessengerDriverTelegram {
+	switch m.Driver {
+	case MessengerDriverTelegram:
 		if err := checkRequiredFields(map[string]any{
 			"MESSENGER_TELEGRAM_TOKEN":  m.Telegram.Token,
 			"MESSENGER_TELEGRAM_CHATID": m.Telegram.ChatID,
 		}, ""); err != nil {
 			return err
 		}
-	} else if m.Driver == "" {
+	case MessengerDriverScreener:
+		// No required fields for Screener
+	case "":
 		return errors.New("MESSENGER_DRIVER not set")
-	} else {
+	default:
 		return fmt.Errorf("unknown MESSENGER_DRIVER: %s", m.Driver)
 	}
+
 	return nil
 }
 
@@ -222,6 +247,18 @@ func checkRequiredFields(fields map[string]any, prefix string) (err error) {
 				err = fmt.Errorf("%s%s not set", prefix, fieldName)
 				return
 			}
+		case int:
+			if fieldValue.(int) == 0 {
+				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
+			}
+		case int64:
+			if fieldValue.(int64) == 0 {
+				err = fmt.Errorf("%s%s not set", prefix, fieldName)
+				return
+			}
+		default:
+			err = fmt.Errorf("%s%s undefined type", prefix, fieldName)
 		}
 	}
 	return
