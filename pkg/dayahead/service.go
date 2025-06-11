@@ -7,16 +7,21 @@ import (
 	"fmt"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/chart"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/messenger"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/repository"
 	"github.com/shopspring/decimal"
+	"strconv"
 	"time"
 )
+
+const msgDayFormat = "Monday, 02 January 2006"
 
 type Service struct {
 	cfg             *config.App
 	dataRepository  repository.Data
 	chartRepository repository.Bytes
 	chart           chart.Chart
+	msgr            messenger.Messenger
 }
 
 func NewDayAhead(ctx context.Context, cfg *config.App) (DayAhead, error) {
@@ -35,8 +40,11 @@ func NewDayAhead(ctx context.Context, cfg *config.App) (DayAhead, error) {
 		return nil, fmt.Errorf("Error creating bytes repository: %v", err)
 	}
 
-	// Prepare Chart.
+	// Prepare Chart and Messenger.
 	s.chart = chart.NewChart(&cfg.Ui)
+	if s.msgr, err = messenger.NewMessenger(&cfg.Messenger); err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }
@@ -67,6 +75,26 @@ func (s *Service) GetHtmlChart(ctx context.Context, day time.Time, opts ...repos
 	), 1)
 
 	return
+}
+
+func (s *Service) GetTextChart(ctx context.Context, day time.Time, opts ...repository.Option) (string, error) {
+	prices, err := s.dataRepository.Get(ctx, day, opts...)
+	if err != nil {
+		return "", err
+	}
+	return s.chart.TextChart(prices, day)
+}
+
+func (s *Service) SendMessage(ctx context.Context, day time.Time, opts ...repository.Option) error {
+	msg, err := s.GetTextChart(ctx, day, opts...)
+	if err != nil {
+		return err
+	}
+	//@todo: use a proper URL from config
+	url := fmt.Sprintf("http://my-url/day-prices/%s?vat=%s",
+		day.Format("2006-01-02"), strconv.FormatBool(repository.NewOptions(opts...).WithVat))
+	msg = fmt.Sprintf("EPEX NL [%s](%s)\n\n%s", day.Format(msgDayFormat), url, msg)
+	return s.msgr.SendMessage(ctx, msg)
 }
 
 func (s *Service) GetPrices(ctx context.Context, startDate time.Time, opts ...repository.Option) ([]decimal.Decimal, error) {

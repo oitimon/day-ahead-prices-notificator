@@ -20,6 +20,13 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//@todo development in progress
+	//if err := da.SendMessage(ctx, day, repository.WithVat(true)); err != nil {
+	//	log.Println(err)
+	//	http.Error(w, "server chart error", http.StatusInternalServerError)
+	//	return
+	//}
+
 	// Generate the chart as HTML
 	html, err := da.GetHtmlChart(ctx, day, repository.WithVat(ctx.Value("vat").(bool)))
 	if err != nil {
