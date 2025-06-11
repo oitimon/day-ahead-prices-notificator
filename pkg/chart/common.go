@@ -86,6 +86,11 @@ func (c *CommonChart) generateXAxis(prices []decimal.Decimal) []string {
 }
 
 func (c *CommonChart) generateYAxis(prices []decimal.Decimal, fontSize int) []opts.BarData {
+	fontSize -= 5 // Adjust font size for labels
+	if fontSize < 3 {
+		fontSize = 3 // Ensure minimum font size
+	}
+
 	yAxis := make([]opts.BarData, len(prices))
 	for i, price := range prices {
 		yAxis[i] = opts.BarData{
