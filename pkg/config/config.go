@@ -70,9 +70,22 @@ type TextChart struct {
 	Width int
 }
 
+type HtmlChart struct {
+	Width      string
+	Height     string
+	TitleShift string
+	Fontsize   int
+
+	IframeWidth      string
+	IframeHeight     string
+	IframeTitleShift string
+	IframeFontsize   int
+}
+
 type Ui struct {
 	Analytics    Analytics
 	TextChart    TextChart
+	HtmlChart    HtmlChart
 	Version      string
 	IncludingVat bool
 }
@@ -127,6 +140,7 @@ func (u *Ui) selfCheck(prefix string) error {
 	for _, check := range []error{
 		u.Analytics.selfCheck(prefix),
 		u.TextChart.selfCheck(prefix),
+		u.HtmlChart.selfCheck(prefix),
 	} {
 		if check != nil {
 			return check
@@ -151,6 +165,35 @@ func (t *TextChart) selfCheck(prefix string) error {
 	return checkRequiredFields(map[string]any{
 		"TEXTCHART_WIDTH": t.Width,
 	}, prefix)
+}
+
+func (t *HtmlChart) selfCheck(prefix string) error {
+	if t.Width == "" {
+		t.Width = "900px"
+	}
+	if t.Height == "" {
+		t.Height = "500px"
+	}
+	if t.TitleShift == "" {
+		t.TitleShift = "39%"
+	}
+	if t.Fontsize == 0 {
+		t.Fontsize = 16
+	}
+
+	if t.IframeWidth == "" {
+		t.IframeWidth = "470px"
+	}
+	if t.IframeHeight == "" {
+		t.IframeHeight = "400px"
+	}
+	if t.IframeTitleShift == "" {
+		t.IframeTitleShift = "34%"
+	}
+	if t.IframeFontsize == 0 {
+		t.IframeFontsize = 11
+	}
+	return nil
 }
 
 func (s *Server) selfCheck() error {

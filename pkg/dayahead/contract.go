@@ -9,6 +9,7 @@ import (
 
 type DayAhead interface {
 	GetHtmlChart(ctx context.Context, day time.Time, opts ...repository.Option) ([]byte, error)
+	GetHaIframeChart(ctx context.Context, day time.Time, opts ...repository.Option) ([]byte, error)
 	GetTextChart(ctx context.Context, day time.Time, opts ...repository.Option) (string, error)
 	SendMessage(ctx context.Context, day time.Time, opts ...repository.Option) error
 	GetPrices(ctx context.Context, day time.Time, opts ...repository.Option) ([]decimal.Decimal, error)

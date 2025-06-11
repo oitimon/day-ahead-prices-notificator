@@ -55,7 +55,7 @@ func (s *Service) GetHtmlChart(ctx context.Context, day time.Time, opts ...repos
 	if err != nil {
 		return
 	}
-	if html, err = s.chart.HtmlChart(prices, day); err != nil {
+	if html, err = s.chart.HtmlChart(prices, day, chart.FormatPage); err != nil {
 		return
 	}
 
@@ -73,6 +73,18 @@ func (s *Service) GetHtmlChart(ctx context.Context, day time.Time, opts ...repos
 		fmt.Sprintf(`<div class="container">%s&nbsp;%s</div><div class="container">`,
 			before, after),
 	), 1)
+
+	return
+}
+
+func (s *Service) GetHaIframeChart(ctx context.Context, day time.Time, opts ...repository.Option) (html []byte, err error) {
+	prices, err := s.dataRepository.Get(ctx, day, opts...)
+	if err != nil {
+		return
+	}
+	if html, err = s.chart.HtmlChart(prices, day, chart.FormatIframe); err != nil {
+		return
+	}
 
 	return
 }
