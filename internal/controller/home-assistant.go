@@ -24,7 +24,7 @@ func HomeAssistantIframeHandler(w http.ResponseWriter, r *http.Request) {
 	html, err := da.GetHaIframeChart(ctx, day, repository.WithVat(ctx.Value("vat").(bool)))
 	if err != nil {
 		log.Println(err)
-		http.Error(w, "server chart error", http.StatusInternalServerError)
+		http.Error(w, "HTML chart rendering failed", http.StatusInternalServerError)
 		return
 	}
 
