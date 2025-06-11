@@ -6,7 +6,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"log"
-	"strings"
 )
 
 type Telegram struct {
@@ -39,8 +38,9 @@ func (tg *Telegram) SendMessage(_ context.Context, message string) error {
 
 // sanitiseMessage Escape special characters for MarkdownV2
 func (tg *Telegram) sanitiseMessage(message string) string {
-	message = strings.Replace(message, "-", "\\-", -1)
-	message = strings.Replace(message, ".", "\\.", -1)
-
-	return message
+	//message = strings.Replace(message, "-", "\\-", -1)
+	//message = strings.Replace(message, ".", "\\.", -1)
+	//
+	//return message
+	return tgbotapi.EscapeText(tgbotapi.ModeMarkdownV2, message)
 }

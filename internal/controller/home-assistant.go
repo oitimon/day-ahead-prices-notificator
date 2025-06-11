@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
+func HomeAssistantIframeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	day := ctx.Value("day").(time.Time)
 	da := ctx.Value("dayahead").(dayahead.DayAhead)
@@ -20,15 +20,8 @@ func DayPricesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//@todo development in progress
-	//if err := da.SendMessage(ctx, day, repository.WithVat(true)); err != nil {
-	//	log.Println(err)
-	//	http.Error(w, "server chart error", http.StatusInternalServerError)
-	//	return
-	//}
-
 	// Generate the chart as HTML
-	html, err := da.GetHtmlChart(ctx, day, repository.WithVat(ctx.Value("vat").(bool)))
+	html, err := da.GetHaIframeChart(ctx, day, repository.WithVat(ctx.Value("vat").(bool)))
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "HTML chart rendering failed", http.StatusInternalServerError)

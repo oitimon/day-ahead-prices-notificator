@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24.4-alpine AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY . .
 
 RUN go build -o da-price-notificator cmd/server/main.go
 
-FROM alpine:3.21.3
+FROM alpine:3.22
 
 WORKDIR /app
 

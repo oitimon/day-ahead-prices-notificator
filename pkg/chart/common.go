@@ -19,6 +19,8 @@ const (
 	barChar       = "█"
 	barEmptyChar  = " "
 	htmlPageTitle = "EPEX NL %s"
+	FormatPage    = 1
+	FormatIframe  = 2
 )
 
 type CommonChart struct {
@@ -31,19 +33,34 @@ func NewChart(cfg *config.Ui) Chart {
 	}
 }
 
-func (c *CommonChart) HtmlChart(prices []decimal.Decimal, day time.Time) (html []byte, err error) {
+func (c *CommonChart) HtmlChart(prices []decimal.Decimal, day time.Time, format int) (html []byte, err error) {
 	log.Printf("Generating HTML chart for: %s\n", day.Format("2006-01-02"))
+
+	chartWidth := c.cfg.HtmlChart.Width
+	chartHeight := c.cfg.HtmlChart.Height
+	titleShift := c.cfg.HtmlChart.TitleShift
+	fontSize := c.cfg.HtmlChart.Fontsize
+	if format == FormatIframe {
+		chartWidth = c.cfg.HtmlChart.IframeWidth
+		chartHeight = c.cfg.HtmlChart.IframeHeight
+		titleShift = c.cfg.HtmlChart.IframeTitleShift
+		fontSize = c.cfg.HtmlChart.IframeFontsize
+	}
 
 	bar := charts.NewBar()
 	xAxis := c.generateXAxis(prices)
-	yAxis := c.generateYAxis(prices)
+	yAxis := c.generateYAxis(prices, fontSize)
 
 	bar.SetXAxis(xAxis).
 		AddSeries("", yAxis, charts.WithAnimationOpts(opts.Animation{Animation: opts.Bool(true)})).
 		SetGlobalOptions(
-			charts.WithTitleOpts(opts.Title{Title: fmt.Sprintf("EPEX NL %s", day.Format("2006-01-02")), Left: "39%"}),
-			charts.WithXAxisOpts(opts.XAxis{AxisLabel: &opts.AxisLabel{Rotate: 90, Formatter: opts.FuncOpts(`function (value) { return value.padStart(2, '0')+':00'; }`)}}),
-			charts.WithYAxisOpts(opts.YAxis{AxisLabel: &opts.AxisLabel{Formatter: opts.FuncOpts(`function (value) { return value.toFixed(2); }`)}}),
+			charts.WithInitializationOpts(opts.Initialization{
+				Width:  chartWidth,
+				Height: chartHeight,
+			}),
+			charts.WithTitleOpts(opts.Title{Title: fmt.Sprintf("EPEX NL %s", day.Format("2006-01-02")), Left: titleShift}),
+			charts.WithXAxisOpts(opts.XAxis{AxisLabel: &opts.AxisLabel{Rotate: 90, Formatter: opts.FuncOpts(`function (value) { return value.padStart(2, '0')+':00'; }`), FontSize: fontSize}}),
+			charts.WithYAxisOpts(opts.YAxis{AxisLabel: &opts.AxisLabel{Formatter: opts.FuncOpts(`function (value) { return value.toFixed(2); }`), FontSize: fontSize}}),
 		).
 		SetSeriesOptions(charts.WithLabelOpts(opts.Label{Show: opts.Bool(true), Position: "inside"}))
 
@@ -68,11 +85,19 @@ func (c *CommonChart) generateXAxis(prices []decimal.Decimal) []string {
 	return xAxis
 }
 
-func (c *CommonChart) generateYAxis(prices []decimal.Decimal) []opts.BarData {
+func (c *CommonChart) generateYAxis(prices []decimal.Decimal, fontSize int) []opts.BarData {
+	fontSize -= 5 // Adjust font size for labels
+	if fontSize < 3 {
+		fontSize = 3 // Ensure minimum font size
+	}
+
 	yAxis := make([]opts.BarData, len(prices))
 	for i, price := range prices {
 		yAxis[i] = opts.BarData{
 			Value: price.StringFixed(2),
+			Label: &opts.Label{
+				FontSize: float32(fontSize - 5),
+			},
 			ItemStyle: &opts.ItemStyle{
 				Color: c.getColor(price, &c.cfg.Analytics),
 			},
