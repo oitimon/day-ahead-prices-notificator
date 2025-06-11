@@ -182,16 +182,16 @@ func (t *HtmlChart) selfCheck(prefix string) error {
 	}
 
 	if t.IframeWidth == "" {
-		t.IframeWidth = "470px"
+		t.IframeWidth = "350px"
 	}
 	if t.IframeHeight == "" {
-		t.IframeHeight = "400px"
+		t.IframeHeight = "320px"
 	}
 	if t.IframeTitleShift == "" {
-		t.IframeTitleShift = "34%"
+		t.IframeTitleShift = "25%"
 	}
 	if t.IframeFontsize == 0 {
-		t.IframeFontsize = 11
+		t.IframeFontsize = 8
 	}
 	return nil
 }
