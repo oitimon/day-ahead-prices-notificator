@@ -7,7 +7,11 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-COPY . .
+COPY cmd/ cmd/
+COPY internal/ internal/
+COPY pkg/ pkg/
+COPY static/ static/
+COPY VERSION .
 
 RUN go build -o da-price-notificator cmd/server/main.go
 
@@ -16,7 +20,7 @@ FROM alpine:3.22
 WORKDIR /app
 
 # Install tzdata
-RUN apk add --no-cache tzdata=2025b-r0
+RUN apk add --no-cache tzdata
 
 # Create a non-root user
 RUN addgroup -S nonroot && \
