@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -31,6 +31,7 @@ func NowPriceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprint(w, prices[hour].StringFixed(4))
+	w.Header().Set("Content-Type", "application/json")
+	price, _ := prices[hour].Float64()
+	_ = json.NewEncoder(w).Encode(map[string]float64{"price": price})
 }
