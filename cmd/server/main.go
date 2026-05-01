@@ -2,6 +2,13 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
@@ -10,15 +17,7 @@ import (
 	appMiddleware "github.com/oitimon/day-ahead-prices-notificator/internal/middleware"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
 	"github.com/oitimon/day-ahead-prices-notificator/pkg/dayahead"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
-
-const chartHtmlFilename = "/tmp/epex_nl_da_prices_chart.html"
 
 func main() {
 	cfg := loadConfig()
@@ -94,6 +93,8 @@ func router(cfg *config.App, da dayahead.DayAhead) *chi.Mux {
 
 	r.Get("/", controller.IndexHandler)
 	r.Get("/api/v1/healthcheck", controller.HealthCheckHandler)
+	r.With(appMiddleware.VatMiddleware).
+		Get("/api/v1/now-price", controller.NowPriceHandler)
 	r.With(appMiddleware.DateMiddleware).With(appMiddleware.VatMiddleware).
 		Get("/day-prices/{day}", controller.DayPricesHandler)
 	r.With(appMiddleware.DateMiddleware).With(appMiddleware.VatMiddleware).
