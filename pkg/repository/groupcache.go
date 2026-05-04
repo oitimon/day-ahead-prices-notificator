@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/golang/groupcache"
-	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
-	"github.com/shopspring/decimal"
-	"github.com/valyala/fastjson"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang/groupcache"
+	"github.com/oitimon/day-ahead-prices-notificator/pkg/config"
+	"github.com/shopspring/decimal"
+	"github.com/valyala/fastjson"
 )
 
 // GroupCache is a global variable that holds the single groupcache instance
@@ -30,7 +31,6 @@ type GroupCache struct {
 type groupCacheData struct {
 	parent *GroupCache
 	cache  *groupcache.Group
-	parser fastjson.Parser
 	prev   Data
 }
 
@@ -47,7 +47,6 @@ func NewGroupCache(cfg *config.GroupCache, prev Data) *GroupCache {
 		gc.data = groupCacheData{
 			parent: gc,
 			prev:   prev,
-			parser: fastjson.Parser{},
 			cache: groupcache.NewGroup("data", 64<<20, groupcache.GetterFunc(
 				func(ctx groupcache.Context, key string, dest groupcache.Sink) (err error) {
 					log.Println("Groupcache, fetching from external source:", key)
@@ -143,7 +142,7 @@ func (gc *groupCacheData) Get(ctx context.Context, startDate time.Time, opts ...
 		err = errors.New("error getting data from groupcache: " + err.Error())
 		return
 	}
-	v, err := gc.parser.ParseBytes(data)
+	v, err := fastjson.ParseBytes(data)
 	if err != nil {
 		err = fmt.Errorf("error parsing JSON '%s': %v", string(data), err)
 		return

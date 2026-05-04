@@ -20,7 +20,7 @@ FROM alpine:3.22
 WORKDIR /app
 
 # Install tzdata
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache tzdata=2026b-r0
 
 # Create a non-root user
 RUN addgroup -S nonroot && \
