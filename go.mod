@@ -1,9 +1,9 @@
 module github.com/oitimon/day-ahead-prices-notificator
 
-go 1.24.4
+go 1.25.9
 
 require (
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-echarts/go-echarts/v2 v2.5.5
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
